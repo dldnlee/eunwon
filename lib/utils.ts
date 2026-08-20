@@ -1,5 +1,34 @@
 import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { extendTailwindMerge } from 'tailwind-merge';
+
+// tailwind-merge doesn't know our DESIGN.md type-scale tokens (heading-md, button-md, ...)
+// are font-size utilities, not colors — without this it treats `text-heading-md` as
+// conflicting with color classes like `text-ink` (both are `text-{word}`) and silently
+// drops one of them. Registering the scale here keeps size + color classes independent.
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      'font-size': [
+        {
+          text: [
+            'hero-display',
+            'display-lg',
+            'heading-lg',
+            'heading-md',
+            'heading-sm',
+            'card-title',
+            'subtitle',
+            'body-md',
+            'body-sm',
+            'caption',
+            'micro',
+            'button-md',
+          ],
+        },
+      ],
+    },
+  },
+});
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

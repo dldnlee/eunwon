@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Share2 } from 'lucide-react';
+import { Share2, Check } from 'lucide-react';
 
 export function ShareButton({ title }: { title: string }) {
   const [copied, setCopied] = useState(false);
@@ -22,7 +22,7 @@ export function ShareButton({ title }: { title: string }) {
 
   return (
     <Button variant="outline" onClick={handleShare}>
-      <Share2 className="h-4 w-4" />
+      {copied ? <Check className="h-4 w-4 text-success-text" /> : <Share2 className="h-4 w-4" />}
       {copied ? '링크 복사됨' : '공유'}
     </Button>
   );

@@ -27,7 +27,7 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-slate-900">
+      <h1 className="mb-xl text-heading-sm text-ink">
         {profile.business_name ?? '내 사업'}에 맞는 지원사업
       </h1>
       <DashboardClient

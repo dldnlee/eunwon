@@ -19,9 +19,9 @@ export default async function OnboardingPage() {
   if (profile) redirect('/dashboard');
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-surface p-md">
       <div className="w-full max-w-lg">
-        <h1 className="mb-8 text-center text-2xl font-bold text-slate-900">사업 정보 입력</h1>
+        <h1 className="mb-xxl text-center text-heading-sm text-ink">사업 정보 입력</h1>
         <OnboardingForm userId={user.id} />
       </div>
     </div>

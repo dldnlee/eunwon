@@ -42,36 +42,46 @@ function LoginForm() {
         <CardDescription>내 사업에 맞는 지원사업을 찾아보세요</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-md" noValidate>
+          <div className="flex flex-col gap-xs">
             <Label htmlFor="email">이메일</Label>
             <Input
               id="email"
               type="email"
+              autoComplete="email"
               required
+              error={!!error}
+              aria-describedby={error ? 'login-error' : undefined}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
             />
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-xs">
             <Label htmlFor="password">비밀번호</Label>
             <Input
               id="password"
               type="password"
+              autoComplete="current-password"
               required
+              error={!!error}
+              aria-describedby={error ? 'login-error' : undefined}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+            <p id="login-error" role="alert" className="text-body-sm text-error">
+              {error}
+            </p>
+          )}
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? '로그인 중...' : '로그인'}
           </Button>
         </form>
-        <p className="mt-4 text-center text-sm text-slate-500">
+        <p className="mt-lg text-center text-body-sm text-steel">
           계정이 없으신가요?{' '}
-          <Link href="/signup" className="font-medium text-blue-600 hover:underline">
+          <Link href="/signup" className="font-medium text-brand-blue-deep hover:underline">
             회원가입
           </Link>
         </p>
@@ -82,7 +92,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-surface p-md">
       <Suspense>
         <LoginForm />
       </Suspense>

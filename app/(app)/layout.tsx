@@ -12,21 +12,27 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect('/login');
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <Link href="/dashboard" className="text-lg font-bold text-slate-900">
+    <div className="min-h-screen bg-surface">
+      <header className="sticky top-0 z-10 border-b border-hairline-soft bg-canvas">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-xl py-sm">
+          <Link href="/dashboard" className="text-card-title text-ink">
             지원사업매칭
           </Link>
-          <nav className="flex items-center gap-4 text-sm font-medium text-slate-600">
-            <Link href="/dashboard" className="hover:text-slate-900">대시보드</Link>
-            <Link href="/saved" className="hover:text-slate-900">저장한 사업</Link>
-            <Link href="/settings" className="hover:text-slate-900">설정</Link>
+          <nav className="flex items-center gap-lg text-body-sm font-medium text-steel">
+            <Link href="/dashboard" className="rounded-sm py-xs transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2">
+              대시보드
+            </Link>
+            <Link href="/saved" className="rounded-sm py-xs transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2">
+              저장한 사업
+            </Link>
+            <Link href="/settings" className="rounded-sm py-xs transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2">
+              설정
+            </Link>
             <LogoutButton />
           </nav>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+      <main className="mx-auto max-w-6xl px-xl py-xxl">{children}</main>
     </div>
   );
 }

@@ -1,18 +1,27 @@
 import * as React from 'react';
+import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(
   ({ className, children, ...props }, ref) => (
-    <select
-      ref={ref}
-      className={cn(
-        'flex h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50',
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </select>
+    <div className={cn('relative inline-block w-full', className)}>
+      <select
+        ref={ref}
+        className={cn(
+          'h-10 w-full appearance-none rounded-md border border-hairline bg-canvas px-md py-sm pr-9 text-body-sm text-ink transition-colors',
+          'focus-visible:outline-none focus-visible:border-brand-blue-deep focus-visible:ring-2 focus-visible:ring-brand-blue-deep/30',
+          'disabled:cursor-not-allowed disabled:opacity-50',
+          'max-sm:min-h-11'
+        )}
+        {...props}
+      >
+        {children}
+      </select>
+      <ChevronDown
+        aria-hidden="true"
+        className="pointer-events-none absolute right-sm top-1/2 h-4 w-4 -translate-y-1/2 text-steel"
+      />
+    </div>
   )
 );
 Select.displayName = 'Select';

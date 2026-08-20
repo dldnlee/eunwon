@@ -47,7 +47,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-surface p-md">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>회원가입</CardTitle>
@@ -55,42 +55,56 @@ export default function SignupPage() {
         </CardHeader>
         <CardContent>
           {sent ? (
-            <p className="text-sm text-slate-600">
-              <strong>{email}</strong>로 인증 메일을 보냈어요. 메일함을 확인해주세요.
-            </p>
+            <div className="flex flex-col items-start gap-xs rounded-md bg-success-bg px-md py-sm">
+              <p className="text-body-sm text-success-text">
+                <strong>{email}</strong>로 인증 메일을 보냈어요. 메일함을 확인해주세요.
+              </p>
+            </div>
           ) : (
             <>
-              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5">
+              <form onSubmit={handleSubmit} className="flex flex-col gap-md" noValidate>
+                <div className="flex flex-col gap-xs">
                   <Label htmlFor="email">이메일</Label>
                   <Input
                     id="email"
                     type="email"
+                    autoComplete="email"
                     required
+                    error={!!error}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
                   />
                 </div>
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-xs">
                   <Label htmlFor="password">비밀번호</Label>
                   <Input
                     id="password"
                     type="password"
+                    autoComplete="new-password"
                     required
                     minLength={6}
+                    error={!!error}
+                    aria-describedby="password-hint"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
+                  <p id="password-hint" className="text-caption text-stone">
+                    6자 이상 입력해주세요
+                  </p>
                 </div>
-                {error && <p className="text-sm text-red-600">{error}</p>}
+                {error && (
+                  <p role="alert" className="text-body-sm text-error">
+                    {error}
+                  </p>
+                )}
                 <Button type="submit" disabled={loading} className="w-full">
                   {loading ? '가입 중...' : '회원가입'}
                 </Button>
               </form>
-              <p className="mt-4 text-center text-sm text-slate-500">
+              <p className="mt-lg text-center text-body-sm text-steel">
                 이미 계정이 있으신가요?{' '}
-                <Link href="/login" className="font-medium text-blue-600 hover:underline">
+                <Link href="/login" className="font-medium text-brand-blue-deep hover:underline">
                   로그인
                 </Link>
               </p>

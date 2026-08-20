@@ -3,21 +3,30 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 rounded-lg text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
+  'inline-flex items-center justify-center gap-2 rounded-full text-button-md transition-colors disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2',
   {
     variants: {
       variant: {
-        default: 'bg-blue-600 text-white hover:bg-blue-700',
-        secondary: 'bg-slate-100 text-slate-900 hover:bg-slate-200',
-        outline: 'border border-slate-300 bg-white text-slate-900 hover:bg-slate-50',
-        ghost: 'text-slate-700 hover:bg-slate-100',
-        destructive: 'bg-red-600 text-white hover:bg-red-700',
+        default:
+          'bg-primary text-on-primary hover:bg-charcoal disabled:bg-hairline disabled:text-muted',
+        secondary:
+          'border border-hairline bg-canvas text-ink hover:bg-surface disabled:border-hairline disabled:text-muted',
+        outline:
+          'border border-ink bg-transparent text-ink hover:bg-surface disabled:border-hairline disabled:text-muted',
+        ghost:
+          'bg-transparent text-ink hover:bg-surface disabled:text-muted',
+        success:
+          'bg-success-bg text-success-text hover:bg-success-bg/70 disabled:bg-hairline disabled:text-muted',
+        destructive:
+          'bg-error text-on-dark hover:bg-error/90 disabled:bg-hairline disabled:text-muted',
+        link:
+          'rounded-none bg-transparent p-0 text-ink underline-offset-4 hover:underline disabled:text-muted',
       },
       size: {
-        default: 'h-10 px-4 py-2',
-        sm: 'h-8 rounded-md px-3 text-xs',
-        lg: 'h-12 rounded-lg px-8 text-base',
-        icon: 'h-10 w-10',
+        default: 'h-10 px-xl py-[11px] max-sm:min-h-11',
+        sm: 'h-9 px-lg py-xs max-sm:min-h-11',
+        lg: 'h-12 px-xxl py-md max-sm:min-h-12',
+        icon: 'h-9 w-9 p-0 max-sm:h-11 max-sm:w-11',
       },
     },
     defaultVariants: {

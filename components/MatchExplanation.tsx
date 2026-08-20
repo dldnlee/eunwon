@@ -36,21 +36,30 @@ export function MatchExplanation({ programId }: { programId: string }) {
   }
 
   return (
-    <Card id="explain" className="border-blue-200 bg-blue-50/50">
+    <Card id="explain" className="border-brand-blue-200 bg-brand-blue-200/10">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Sparkles className="h-4 w-4 text-blue-600" /> 왜 나에게 맞나요?
+        <CardTitle className="flex items-center gap-xs text-card-title">
+          <Sparkles className="h-4 w-4 text-brand-blue-deep" aria-hidden="true" /> 왜 나에게 맞나요?
         </CardTitle>
       </CardHeader>
       <CardContent>
         {explanation ? (
-          <p className="text-sm text-slate-700">{explanation}</p>
+          <p className="text-body-sm text-charcoal">{explanation}</p>
+        ) : loading ? (
+          <div className="flex items-center gap-sm text-body-sm text-steel">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-hairline border-t-brand-blue-deep" aria-hidden="true" />
+            AI가 매칭 이유를 분석하고 있어요...
+          </div>
         ) : (
           <Button size="sm" onClick={fetchExplanation} disabled={loading}>
-            {loading ? '분석 중...' : 'AI 설명 보기'}
+            AI 설명 보기
           </Button>
         )}
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+        {error && (
+          <p role="alert" className="mt-sm text-body-sm text-error">
+            {error}
+          </p>
+        )}
       </CardContent>
     </Card>
   );

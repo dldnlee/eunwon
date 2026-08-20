@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Script from 'next/script';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { CheckCircle2 } from 'lucide-react';
 
 // Toss Payments v1 billing SDK — loaded via <script>, no npm package required.
 // Docs: https://docs.tosspayments.com/guides/v2/billing/integration
@@ -53,20 +54,32 @@ export function UpgradeForm() {
         src="https://js.tosspayments.com/v1/payment"
         onLoad={() => setSdkReady(true)}
       />
-      <div className="mx-auto max-w-md">
+      <div className="mx-auto max-w-md p-md">
         <Card>
           <CardHeader>
             <CardTitle>Pro 플랜 시작하기</CardTitle>
             <CardDescription>₩39,000/월 · 언제든 해지 가능</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <ul className="flex flex-col gap-1.5 text-sm text-slate-600">
-              <li>· 무제한 매칭 결과</li>
-              <li>· &ldquo;왜 나에게 맞나요?&rdquo; AI 설명</li>
-              <li>· 신청서 초안 작성 도우미</li>
-              <li>· 신규 매칭 이메일 알림</li>
+          <CardContent className="flex flex-col gap-md">
+            <ul className="flex flex-col gap-xs text-body-sm text-charcoal">
+              <li className="flex items-center gap-xs">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 무제한 매칭 결과
+              </li>
+              <li className="flex items-center gap-xs">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> &ldquo;왜 나에게 맞나요?&rdquo; AI 설명
+              </li>
+              <li className="flex items-center gap-xs">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 신청서 초안 작성 도우미
+              </li>
+              <li className="flex items-center gap-xs">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 신규 매칭 이메일 알림
+              </li>
             </ul>
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && (
+              <p role="alert" className="text-body-sm text-error">
+                {error}
+              </p>
+            )}
             <Button onClick={handleUpgrade} disabled={!sdkReady || loading} className="w-full">
               {loading ? '이동 중...' : '카드 등록하고 시작하기'}
             </Button>

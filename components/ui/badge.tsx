@@ -3,19 +3,25 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const badgeVariants = cva(
-  'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+  'inline-flex items-center gap-1 rounded-full px-[10px] py-[4px] text-[13px] font-semibold leading-[1.4]',
   {
     variants: {
       variant: {
-        default: 'bg-blue-100 text-blue-700',
-        secondary: 'bg-slate-100 text-slate-700',
-        success: 'bg-emerald-100 text-emerald-700',
-        warning: 'bg-amber-100 text-amber-700',
-        destructive: 'bg-red-100 text-red-700',
-        outline: 'border border-slate-300 text-slate-700',
+        // General informational / AI / Pro-tier accent chip (badge-beta pattern)
+        default: 'bg-brand-blue-200 text-brand-blue-700',
+        // Quiet neutral tag
+        secondary: 'bg-surface text-steel',
+        // Confirmation / saved-active state
+        success: 'bg-success-bg text-success-text',
+        // Elevated-but-not-urgent notice (e.g. deadline approaching)
+        warning: 'bg-surface-soft text-charcoal',
+        // Urgent accent — reserved for deadline urgency per DESIGN.md adaptation notes
+        destructive: 'bg-brand-coral text-on-dark',
+        // Minimal outlined tag
+        outline: 'border border-hairline bg-transparent text-ink',
       },
     },
-    defaultVariants: { variant: 'default' },
+    defaultVariants: { variant: 'secondary' },
   }
 );
 

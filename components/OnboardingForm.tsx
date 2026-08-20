@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
+import { Check } from 'lucide-react';
 import type { EntityType } from '@/lib/types';
 
 const STEPS = ['사업 형태', '업종', '지역', '규모', '추가 정보'] as const;
@@ -82,9 +84,9 @@ export function OnboardingForm({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-xl">
       <div>
-        <div className="mb-2 flex justify-between text-sm text-slate-500">
+        <div className="mb-xs flex justify-between text-body-sm text-steel">
           <span>{STEPS[step]}</span>
           <span>{step + 1} / {STEPS.length}</span>
         </div>
@@ -92,26 +94,34 @@ export function OnboardingForm({ userId }: { userId: string }) {
       </div>
 
       {step === 0 && (
-        <div className="flex flex-col gap-3">
-          {ENTITY_TYPES.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setEntityType(opt.value)}
-              className={`rounded-lg border p-4 text-left text-sm transition-colors ${
-                entityType === opt.value
-                  ? 'border-blue-600 bg-blue-50 text-blue-900'
-                  : 'border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="flex flex-col gap-sm" role="radiogroup" aria-label="사업 형태">
+          {ENTITY_TYPES.map((opt) => {
+            const selected = entityType === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => setEntityType(opt.value)}
+                className={cn(
+                  'flex items-center justify-between gap-md rounded-lg border p-md text-left text-body-sm transition-colors max-sm:min-h-11',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2',
+                  selected
+                    ? 'border-ink bg-surface font-medium text-ink'
+                    : 'border-hairline text-charcoal hover:bg-surface'
+                )}
+              >
+                {opt.label}
+                {selected && <Check className="h-4 w-4 shrink-0 text-ink" aria-hidden="true" />}
+              </button>
+            );
+          })}
         </div>
       )}
 
       {step === 1 && (
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-xs">
           <Label htmlFor="businessType">업종</Label>
           <Select id="businessType" value={businessType} onChange={(e) => setBusinessType(e.target.value)}>
             {BUSINESS_TYPES.map((t) => (
@@ -122,7 +132,7 @@ export function OnboardingForm({ userId }: { userId: string }) {
       )}
 
       {step === 2 && (
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-xs">
           <Label htmlFor="region">지역 (시/도)</Label>
           <Select id="region" value={region} onChange={(e) => setRegion(e.target.value)}>
             {REGIONS.map((r) => (
@@ -133,11 +143,11 @@ export function OnboardingForm({ userId }: { userId: string }) {
       )}
 
       {step === 3 && (
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-xl">
+          <div className="flex flex-col gap-xs">
             <div className="flex justify-between">
               <Label htmlFor="employeeCount">직원수</Label>
-              <span className="text-sm text-slate-500">{employeeCount}명</span>
+              <span className="text-body-sm text-steel">{employeeCount}명</span>
             </div>
             <Slider
               id="employeeCount"
@@ -147,12 +157,13 @@ export function OnboardingForm({ userId }: { userId: string }) {
               onChange={(e) => setEmployeeCount(Number(e.target.value))}
             />
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-xs">
             <Label htmlFor="annualRevenue">연매출 (원, 선택)</Label>
             <Input
               id="annualRevenue"
               type="number"
               min={0}
+              inputMode="numeric"
               placeholder="예: 100000000"
               value={annualRevenue}
               onChange={(e) => setAnnualRevenue(e.target.value)}
@@ -162,8 +173,8 @@ export function OnboardingForm({ userId }: { userId: string }) {
       )}
 
       {step === 4 && (
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-xl">
+          <div className="flex flex-col gap-xs">
             <Label htmlFor="foundedAt">창업일 (선택)</Label>
             <Input
               id="foundedAt"
@@ -172,38 +183,48 @@ export function OnboardingForm({ userId }: { userId: string }) {
               onChange={(e) => setFoundedAt(e.target.value)}
             />
           </div>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+          <label className="flex min-h-11 cursor-pointer items-center gap-sm text-body-sm text-charcoal">
             <input
               type="checkbox"
               checked={isTechCompany}
               onChange={(e) => setIsTechCompany(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 accent-blue-600"
+              className="h-4 w-4 rounded border-hairline accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2"
             />
             기술 기반 기업이에요 (특허, R&D 등)
           </label>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-sm">
             <Label>특이사항 (해당되는 항목 선택)</Label>
-            <div className="flex flex-wrap gap-2">
-              {EXTRA_TAGS.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => toggleTag(tag)}
-                  className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                    extraTags.includes(tag)
-                      ? 'border-blue-600 bg-blue-600 text-white'
-                      : 'border-slate-300 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  {tag}
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-xs">
+              {EXTRA_TAGS.map((tag) => {
+                const selected = extraTags.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => toggleTag(tag)}
+                    className={cn(
+                      'rounded-full border px-md py-xs text-body-sm transition-colors',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2',
+                      selected
+                        ? 'border-ink bg-ink text-on-primary'
+                        : 'border-hairline text-steel hover:bg-surface'
+                    )}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && (
+        <p role="alert" className="text-body-sm text-error">
+          {error}
+        </p>
+      )}
 
       <div className="flex justify-between">
         <Button variant="outline" disabled={step === 0} onClick={() => setStep((s) => s - 1)}>

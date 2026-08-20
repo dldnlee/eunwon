@@ -32,8 +32,8 @@ export function SaveToggleButton({
   }
 
   return (
-    <Button variant={saved ? 'default' : 'outline'} onClick={toggle} disabled={loading}>
-      <Bookmark className={saved ? 'h-4 w-4 fill-white' : 'h-4 w-4'} />
+    <Button variant={saved ? 'success' : 'outline'} onClick={toggle} disabled={loading}>
+      <Bookmark className={saved ? 'h-4 w-4 fill-success-text' : 'h-4 w-4'} />
       {saved ? '저장됨' : '저장하기'}
     </Button>
   );

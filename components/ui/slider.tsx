@@ -7,7 +7,8 @@ export const Slider = React.forwardRef<HTMLInputElement, React.InputHTMLAttribut
       ref={ref}
       type="range"
       className={cn(
-        'h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-blue-600',
+        'h-2 w-full cursor-pointer appearance-none rounded-full bg-hairline accent-ink',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2',
         className
       )}
       {...props}

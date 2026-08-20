@@ -8,7 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { TOSS_ENABLED } from '@/lib/payments';
+import { Check } from 'lucide-react';
 import type { EntityType, Profile } from '@/lib/types';
 
 const ENTITY_TYPES: EntityType[] = ['예비창업자', '개인사업자', '법인'];
@@ -53,17 +55,17 @@ export function SettingsForm({ profile }: { profile: Profile }) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-xl">
       <Card>
         <CardHeader>
           <CardTitle>사업 정보</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
+        <CardContent className="flex flex-col gap-md">
+          <div className="flex flex-col gap-xs">
             <Label htmlFor="businessName">사업체명</Label>
             <Input id="businessName" value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-xs">
             <Label htmlFor="entityType">사업 형태</Label>
             <Select id="entityType" value={entityType} onChange={(e) => setEntityType(e.target.value as EntityType)}>
               {ENTITY_TYPES.map((t) => (
@@ -71,7 +73,7 @@ export function SettingsForm({ profile }: { profile: Profile }) {
               ))}
             </Select>
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-xs">
             <Label htmlFor="region">지역</Label>
             <Select id="region" value={region} onChange={(e) => setRegion(e.target.value)}>
               {REGIONS.map((r) => (
@@ -79,31 +81,37 @@ export function SettingsForm({ profile }: { profile: Profile }) {
               ))}
             </Select>
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-xs">
             <Label htmlFor="employeeCount">직원수</Label>
             <Input
               id="employeeCount"
               type="number"
               min={0}
+              inputMode="numeric"
               value={employeeCount}
               onChange={(e) => setEmployeeCount(e.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-xs">
             <Label htmlFor="annualRevenue">연매출 (원)</Label>
             <Input
               id="annualRevenue"
               type="number"
               min={0}
+              inputMode="numeric"
               value={annualRevenue}
               onChange={(e) => setAnnualRevenue(e.target.value)}
             />
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-sm">
             <Button onClick={handleSave} disabled={saving}>
               {saving ? '저장 중...' : '변경사항 저장'}
             </Button>
-            {saved && <span className="text-sm text-emerald-600">저장됐어요</span>}
+            {saved && (
+              <span className="inline-flex items-center gap-1 text-body-sm text-success-text">
+                <Check className="h-4 w-4" /> 저장됐어요
+              </span>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -112,12 +120,13 @@ export function SettingsForm({ profile }: { profile: Profile }) {
         <CardHeader>
           <CardTitle>구독</CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center justify-between">
+        <CardContent className="flex flex-col items-start gap-md sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="font-medium text-slate-900">
+            <p className="flex items-center gap-xs font-medium text-ink">
               현재 플랜: {profile.subscription === 'pro' ? 'Pro' : '무료'}
+              {profile.subscription === 'pro' && <Badge variant="default">Pro</Badge>}
             </p>
-            <p className="text-sm text-slate-500">
+            <p className="mt-xxs text-body-sm text-steel">
               {profile.subscription === 'pro'
                 ? '무제한 매칭과 AI 기능을 이용 중이에요.'
                 : TOSS_ENABLED
@@ -126,7 +135,7 @@ export function SettingsForm({ profile }: { profile: Profile }) {
             </p>
           </div>
           {profile.subscription !== 'pro' && TOSS_ENABLED && (
-            <Button onClick={handleUpgrade}>Pro로 업그레이드</Button>
+            <Button onClick={handleUpgrade} className="w-full shrink-0 sm:w-auto">Pro로 업그레이드</Button>
           )}
         </CardContent>
       </Card>

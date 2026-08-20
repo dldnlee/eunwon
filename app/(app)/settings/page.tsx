@@ -17,7 +17,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-xl">
-      <h1 className="mb-6 text-2xl font-bold text-slate-900">설정</h1>
+      <h1 className="mb-xl text-heading-sm text-ink">설정</h1>
       <SettingsForm profile={profile as Profile} />
     </div>
   );

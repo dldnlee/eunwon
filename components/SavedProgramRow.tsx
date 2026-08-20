@@ -26,6 +26,7 @@ export function SavedProgramRow({
 }) {
   const [status, setStatus] = useState<SavedStatus>(initialStatus);
   const [notes, setNotes] = useState(initialNotes);
+  const [notesSaved, setNotesSaved] = useState(false);
   const [removed, setRemoved] = useState(false);
 
   async function updateStatus(next: SavedStatus) {
@@ -37,6 +38,8 @@ export function SavedProgramRow({
   async function saveNotes() {
     const supabase = createClient();
     await supabase.from('saved_programs').update({ notes }).eq('id', savedId);
+    setNotesSaved(true);
+    setTimeout(() => setNotesSaved(false), 2000);
   }
 
   async function remove() {
@@ -48,22 +51,29 @@ export function SavedProgramRow({
   if (removed) return null;
 
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-3 p-5">
-        <div className="flex items-start justify-between gap-2">
+    <Card className="rounded-lg">
+      <CardContent className="flex flex-col gap-sm p-lg">
+        <div className="flex items-start justify-between gap-xs">
           <div>
-            <Link href={`/program/${program.id}`} className="font-semibold text-slate-900 hover:underline">
+            <Link
+              href={`/program/${program.id}`}
+              className="rounded-sm font-semibold text-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2"
+            >
               {program.title}
             </Link>
-            <p className="text-sm text-slate-500">
+            <p className="text-body-sm text-steel">
               {program.agency} · ~{formatKoreanDate(program.deadline_end)}
             </p>
           </div>
-          <button onClick={remove} aria-label="삭제" className="text-slate-400 hover:text-red-600">
+          <button
+            onClick={remove}
+            aria-label="삭제"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-stone transition-colors hover:bg-surface hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2 max-sm:h-11 max-sm:w-11"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-sm">
           <Select
             value={status}
             onChange={(e) => updateStatus(e.target.value as SavedStatus)}
@@ -74,16 +84,19 @@ export function SavedProgramRow({
             ))}
           </Select>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-xs">
           <Textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="메모를 남겨보세요"
             className="min-h-[60px]"
           />
-          <Button variant="outline" size="sm" onClick={saveNotes} className="self-start">
-            저장
-          </Button>
+          <div className="flex flex-col items-center gap-xxs self-start">
+            <Button variant="outline" size="sm" onClick={saveNotes}>
+              저장
+            </Button>
+            {notesSaved && <span className="text-caption text-success-text">저장됨</span>}
+          </div>
         </div>
       </CardContent>
     </Card>

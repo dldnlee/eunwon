@@ -38,19 +38,28 @@ export function DraftAssistant({ programId }: { programId: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <FileText className="h-4 w-4 text-blue-600" /> 신청서 초안 작성
+        <CardTitle className="flex items-center gap-xs text-card-title">
+          <FileText className="h-4 w-4 text-brand-blue-deep" aria-hidden="true" /> 신청서 초안 작성
         </CardTitle>
       </CardHeader>
       <CardContent>
         {outline ? (
-          <pre className="whitespace-pre-wrap font-sans text-sm text-slate-700">{outline}</pre>
+          <pre className="whitespace-pre-wrap font-sans text-body-sm text-charcoal">{outline}</pre>
+        ) : loading ? (
+          <div className="flex items-center gap-sm text-body-sm text-steel">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-hairline border-t-brand-blue-deep" aria-hidden="true" />
+            사업계획서 목차를 작성하고 있어요...
+          </div>
         ) : (
           <Button size="sm" onClick={fetchDraft} disabled={loading}>
-            {loading ? '작성 중...' : '사업계획서 목차 생성'}
+            사업계획서 목차 생성
           </Button>
         )}
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+        {error && (
+          <p role="alert" className="mt-sm text-body-sm text-error">
+            {error}
+          </p>
+        )}
       </CardContent>
     </Card>
   );
