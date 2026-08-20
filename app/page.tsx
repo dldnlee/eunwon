@@ -30,11 +30,25 @@ const FEATURES = [
   },
 ];
 
+// Shared glass-panel treatment: translucent canvas + blur + a soft light
+// border, so the fixed color blobs behind read through every panel.
+const GLASS = 'border-white/60 bg-canvas/50 backdrop-blur-xl';
+
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="relative isolate min-h-screen overflow-hidden bg-canvas">
+      {/* Background color field, spread down the full page height so every glass panel — however far down you scroll — has some color behind it */}
+      <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+        <div className="absolute -left-24 top-0 h-96 w-96 rounded-full bg-brand-blue-mid opacity-30 blur-3xl" />
+        <div className="absolute -right-20 top-10 h-80 w-80 rounded-full bg-brand-coral opacity-25 blur-3xl" />
+        <div className="absolute left-1/4 top-[45%] h-72 w-72 rounded-full bg-brand-purple opacity-20 blur-3xl" />
+        <div className="absolute -right-16 top-[55%] h-96 w-96 rounded-full bg-brand-cyan opacity-20 blur-3xl" />
+        <div className="absolute -left-16 top-[80%] h-80 w-80 rounded-full bg-brand-coral opacity-15 blur-3xl" />
+        <div className="absolute -right-24 bottom-0 h-96 w-96 rounded-full bg-brand-blue-mid opacity-25 blur-3xl" />
+      </div>
+
       {/* Nav */}
-      <header className="border-b border-hairline-soft">
+      <header className={`sticky top-0 z-20 border-b ${GLASS}`}>
         <div className="mx-auto flex max-w-6xl items-center justify-between px-xl py-md">
           <span className="flex items-center gap-xs text-card-title text-ink">
             <Logo className="h-6 w-auto" />
@@ -52,15 +66,11 @@ export default function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="relative isolate overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-          <div className="absolute -left-24 -top-24 h-80 w-80 rounded-full bg-brand-blue-mid opacity-25 blur-3xl" />
-          <div className="absolute -right-16 top-10 h-72 w-72 rounded-full bg-brand-coral opacity-20 blur-3xl" />
-          <div className="absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-brand-purple opacity-10 blur-3xl" />
-        </div>
-
+      <section className="relative">
         <div className="relative mx-auto max-w-4xl px-xl py-section-lg text-center sm:py-hero">
-          <Badge variant="default" className="mb-md">Upstage Solar Pro 기반 AI 매칭</Badge>
+          <Badge className={`mb-md border ${GLASS} text-brand-blue-deep`}>
+            Upstage Solar Pro 기반 AI 매칭
+          </Badge>
           <h1 className="text-heading-md text-balance text-ink sm:text-heading-lg lg:text-display-lg">
             놓치고 있는 정부지원사업을
             <br />
@@ -79,10 +89,10 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section className="mx-auto max-w-6xl px-xl py-section">
+      <section className="relative mx-auto max-w-6xl px-xl py-section">
         <div className="grid gap-lg sm:grid-cols-3">
           {FEATURES.map(({ icon: Icon, title, description, iconBg, iconColor }) => (
-            <Card key={title} className="border-none bg-surface">
+            <Card key={title} className={`border ${GLASS} shadow-[0_8px_32px_rgba(0,0,0,0.06)]`}>
               <CardHeader>
                 <div className={`mb-xs flex h-10 w-10 items-center justify-center rounded-full ${iconBg}`}>
                   <Icon className={`h-5 w-5 ${iconColor}`} aria-hidden="true" />
@@ -96,15 +106,11 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section className="relative isolate overflow-hidden border-t border-hairline-soft bg-surface py-section">
-        <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-          <div className="absolute -bottom-32 -right-24 h-72 w-72 rounded-full bg-brand-blue-mid opacity-10 blur-3xl" />
-        </div>
-
+      <section className="relative border-t border-white/60 py-section">
         <div className="relative mx-auto max-w-4xl px-xl">
           <h2 className="text-center text-heading-md text-ink">요금제</h2>
           <div className="mt-xxl grid gap-lg sm:grid-cols-2">
-            <Card>
+            <Card className={`border ${GLASS} shadow-[0_8px_32px_rgba(0,0,0,0.06)]`}>
               <CardHeader>
                 <CardTitle>무료</CardTitle>
                 <CardDescription>가볍게 시작해보세요</CardDescription>
@@ -127,7 +133,7 @@ export default function LandingPage() {
                 </Link>
               </CardContent>
             </Card>
-            <Card className="border-brand-blue-deep ring-1 ring-brand-blue-deep shadow-[0_0_24px_rgba(20,86,240,0.18)]">
+            <Card className={`border-brand-blue-deep/60 ${GLASS} ring-1 ring-brand-blue-deep/60 shadow-[0_0_32px_rgba(20,86,240,0.22)]`}>
               <CardHeader>
                 <div className="flex items-center gap-xs">
                   <CardTitle>Pro</CardTitle>
@@ -173,7 +179,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-hairline-soft py-xl text-center text-caption text-stone">
+      <footer className={`relative border-t ${GLASS} py-xl text-center text-caption text-stone`}>
         © {new Date().getFullYear()} eunwon AI
       </footer>
     </div>
