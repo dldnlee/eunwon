@@ -60,6 +60,10 @@ alter table saved_programs
   add column received_at date,
   add column amount_krw  integer;
 
+-- constraint must be dropped before the UPDATE below — it still only permits the
+-- old Korean values at this point, and would reject the new English ones mid-write
+alter table saved_programs drop constraint saved_programs_status_check;
+
 update saved_programs set status = case status
   when '관심'   then 'saved'
   when '신청중' then 'applied'
@@ -68,7 +72,6 @@ update saved_programs set status = case status
 end;
 
 alter table saved_programs alter column status set default 'saved';
-alter table saved_programs drop constraint saved_programs_status_check;
 alter table saved_programs
   add constraint saved_programs_status_check
   check (status in ('saved', 'applied', 'selected', 'rejected'));
