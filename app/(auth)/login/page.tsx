@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Logo } from '@/components/Logo';
 
 function LoginForm() {
   const router = useRouter();
@@ -92,7 +93,8 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface p-md">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-lg bg-surface p-md">
+      <Logo className="h-8 w-auto" />
       <Suspense>
         <LoginForm />
       </Suspense>

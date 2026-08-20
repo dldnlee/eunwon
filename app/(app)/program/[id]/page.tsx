@@ -88,12 +88,32 @@ export default async function ProgramDetailPage({ params }: { params: { id: stri
             <p className="text-stone">지원 대상</p>
             <p className="font-medium text-ink">{program.target_raw ?? '-'}</p>
           </div>
-          <div>
-            <p className="text-stone">신청 방법</p>
-            <p className="font-medium text-ink">{program.apply_method ?? '-'}</p>
-          </div>
         </CardContent>
       </Card>
+
+      {(program.apply_steps?.length > 0 || program.apply_method) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>신청 방법</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {program.apply_steps?.length > 0 ? (
+              <ol className="flex flex-col gap-sm">
+                {program.apply_steps.map((step: string, i: number) => (
+                  <li key={i} className="flex gap-sm">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-caption font-semibold text-on-primary">
+                      {i + 1}
+                    </span>
+                    <p className="text-body-sm leading-relaxed text-charcoal">{step}</p>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="text-body-sm leading-relaxed text-charcoal">{program.apply_method}</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {program.ai_summary && (
         <Card>

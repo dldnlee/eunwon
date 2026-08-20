@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Logo } from '@/components/Logo';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -47,7 +48,8 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface p-md">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-lg bg-surface p-md">
+      <Logo className="h-8 w-auto" />
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>회원가입</CardTitle>

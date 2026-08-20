@@ -50,6 +50,7 @@ interface EnrichedData {
   entity_types: string[];         // 법인 | 개인사업자 | 예비창업자 | 중소기업 | 창업벤처
   max_age_months: number | null;  // e.g. 84 for "창업 7년 이내"
   is_nationwide: boolean;
+  apply_steps: string[];          // 신청 방법 원문을 단계별로 정리한 목록
 }
 
 export interface SyncResult {
@@ -103,15 +104,17 @@ function extractRegionsFromHashtags(hashtags: string): string[] {
 
 async function enrichWithAI(item: ApiItem): Promise<EnrichedData> {
   const cleanDescription = stripHtml(item.bsnsSumryCn);
+  const cleanApplyMethod = stripHtml(item.reqstMthPapersCn ?? '');
 
   const text = await generateText({
-    maxTokens: 600,
+    maxTokens: 700,
     prompt: `다음 정부지원사업 공고를 분석해서 JSON으로만 응답하세요. JSON 외 다른 텍스트는 절대 포함하지 마세요.
 
 사업명: ${item.pblancNm}
 주관기관: ${item.jrsdInsttNm}
 지원대상: ${item.trgetNm}
 내용: ${cleanDescription}
+신청방법 원문: ${cleanApplyMethod}
 
 다음 형식으로 응답:
 {
@@ -119,7 +122,7 @@ async function enrichWithAI(item: ApiItem): Promise<EnrichedData> {
   "ai_tags": ["태그1", "태그2"],
   "entity_types": ["해당되는 것만 포함: 예비창업자, 개인사업자, 법인, 중소기업, 스타트업"],
   "max_age_months": 업력 제한이 있으면 개월수로 (예: 창업 7년 이내 = 84, 3년 이내 = 36, 없으면 null),
-  "notes": "특이 조건 한 줄 (없으면 빈 문자열)"
+  "apply_steps": ["신청방법 원문을 실행 가능한 단계별 목록으로 정리. 각 항목은 한 문장, 3~6단계 권장. 정보가 부족하면 원문을 그대로 한 단계로 넣기"]
 }`,
   });
 
@@ -129,6 +132,7 @@ async function enrichWithAI(item: ApiItem): Promise<EnrichedData> {
       ai_tags?: string[];
       entity_types?: string[];
       max_age_months?: number | null;
+      apply_steps?: string[];
     }>(text);
     const regions = extractRegionsFromHashtags(item.hashtags);
 
@@ -139,6 +143,7 @@ async function enrichWithAI(item: ApiItem): Promise<EnrichedData> {
       entity_types: parsed.entity_types ?? [item.trgetNm],
       max_age_months: parsed.max_age_months ?? null,
       is_nationwide: regions[0] === '전국',
+      apply_steps: parsed.apply_steps?.length ? parsed.apply_steps : cleanApplyMethod ? [cleanApplyMethod] : [],
     };
   } catch {
     // AI returned unparseable response — use safe fallback
@@ -150,6 +155,7 @@ async function enrichWithAI(item: ApiItem): Promise<EnrichedData> {
       entity_types: [item.trgetNm],
       max_age_months: null,
       is_nationwide: false,
+      apply_steps: cleanApplyMethod ? [cleanApplyMethod] : [],
     };
   }
 }
@@ -170,7 +176,7 @@ async function upsertProgram(
     category:       item.pldirSportRealmLclasCodeNm,  // 창업 | 수출 | 내수 | 기술 | 경영 등
     target_raw:     item.trgetNm,                     // 창업벤처 | 중소기업 | 소상공인 등
     description:    stripHtml(item.bsnsSumryCn),
-    apply_method:   item.reqstMthPapersCn,
+    apply_method:   stripHtml(item.reqstMthPapersCn ?? ''),
     apply_url:      item.rceptEngnHmpgUrl ?? item.pblancUrl,
     detail_url:     item.pblancUrl,
     deadline_start: start?.toISOString().split('T')[0] ?? null,
@@ -183,6 +189,7 @@ async function upsertProgram(
     entity_types:   enriched.entity_types,
     max_age_months: enriched.max_age_months,
     is_nationwide:  enriched.is_nationwide,
+    apply_steps:    enriched.apply_steps,
     is_active:      true,
     updated_at:     new Date().toISOString(),
   };

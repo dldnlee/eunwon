@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Logo } from '@/components/Logo';
 import { TOSS_ENABLED } from '@/lib/payments';
 import { CheckCircle2, Search, Sparkles, FileText } from 'lucide-react';
 
@@ -29,7 +30,10 @@ export default function LandingPage() {
       {/* Nav */}
       <header className="border-b border-hairline-soft">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-xl py-md">
-          <span className="text-card-title text-ink">eunwon AI</span>
+          <span className="flex items-center gap-xs text-card-title text-ink">
+            <Logo className="h-6 w-auto" />
+            eunwon AI
+          </span>
           <div className="flex items-center gap-xs">
             <Link href="/login">
               <Button variant="ghost" size="sm">로그인</Button>

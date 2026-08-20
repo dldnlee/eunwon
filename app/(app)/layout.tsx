@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { LogoutButton } from '@/components/LogoutButton';
+import { Logo } from '@/components/Logo';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -15,7 +16,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen bg-surface">
       <header className="sticky top-0 z-10 border-b border-hairline-soft bg-canvas">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-xl py-sm">
-          <Link href="/dashboard" className="text-card-title text-ink">
+          <Link href="/dashboard" className="flex items-center gap-xs text-card-title text-ink">
+            <Logo className="h-6 w-auto" />
             eunwon AI
           </Link>
           <nav className="flex items-center gap-lg text-body-sm font-medium text-steel">

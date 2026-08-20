@@ -17,6 +17,7 @@ export interface Program {
 
   description: string | null;
   apply_method: string | null;
+  apply_steps: string[];
   apply_url: string | null;
   detail_url: string | null;
 
