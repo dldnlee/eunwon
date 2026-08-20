@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { cn, daysUntil, formatAmount, formatKoreanDate } from '@/lib/utils';
+import { cn, daysUntil, formatKoreanDate } from '@/lib/utils';
 import type { Program } from '@/lib/types';
 import { Bookmark } from 'lucide-react';
 
@@ -20,11 +20,14 @@ export function ProgramCard({
   saved = false,
   onToggleSave,
   showExplainButton = false,
+  matchScorePercent,
 }: {
   program: Program;
   saved?: boolean;
   onToggleSave?: (programId: string) => void;
   showExplainButton?: boolean;
+  /** % of optional eligibility criteria also satisfied — see lib/matching.ts:scoreMatch */
+  matchScorePercent?: number;
 }) {
   return (
     <Card className="flex flex-col hover:shadow-subtle">
@@ -33,6 +36,9 @@ export function ProgramCard({
           <div className="flex flex-wrap gap-xs">
             {program.category && <Badge variant="outline">{program.category}</Badge>}
             <DeadlineBadge deadlineEnd={program.deadline_end} />
+            {matchScorePercent != null && (
+              <Badge variant="success">매칭도 {matchScorePercent}%</Badge>
+            )}
           </div>
           <button
             type="button"
@@ -62,10 +68,7 @@ export function ProgramCard({
         {program.ai_summary && (
           <p className="line-clamp-2 text-body-sm text-charcoal">{program.ai_summary}</p>
         )}
-        <div className="mt-auto flex items-center justify-between text-body-sm">
-          <span className="font-semibold text-ink">
-            {formatAmount(program.amount_text, program.amount_max)}
-          </span>
+        <div className="mt-auto flex items-center justify-end text-body-sm">
           <span className="text-stone">~{formatKoreanDate(program.deadline_end)}</span>
         </div>
       </CardContent>

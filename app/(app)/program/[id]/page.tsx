@@ -7,10 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SaveToggleButton } from '@/components/SaveToggleButton';
 import { ShareButton } from '@/components/ShareButton';
 import { MatchExplanation } from '@/components/MatchExplanation';
-import { DraftAssistant } from '@/components/DraftAssistant';
 import { TOSS_ENABLED } from '@/lib/payments';
-import { formatAmount, formatKoreanDate } from '@/lib/utils';
-import { ExternalLink } from 'lucide-react';
+import { findDuplicateBenefitConflict } from '@/lib/matching';
+import { formatKoreanDate } from '@/lib/utils';
+import { ExternalLink, AlertTriangle } from 'lucide-react';
 
 export default async function ProgramDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -34,6 +34,7 @@ export default async function ProgramDetailPage({ params }: { params: { id: stri
   if (!program) notFound();
 
   const isPro = profile?.subscription === 'pro';
+  const duplicateConflict = await findDuplicateBenefitConflict(supabase, user.id, program);
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-lg">
@@ -49,6 +50,16 @@ export default async function ProgramDetailPage({ params }: { params: { id: stri
           {program.agency}{program.exec_agency ? ` · ${program.exec_agency}` : ''}
         </p>
       </div>
+
+      {duplicateConflict && (
+        <div className="flex items-start gap-sm rounded-md border border-hairline bg-surface-soft p-md text-body-sm text-charcoal">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-error" aria-hidden="true" />
+          <p>
+            이미 수혜받은 &ldquo;{duplicateConflict.title}&rdquo;과 같은 분야({program.category})의 지원사업이에요 —
+            중복수혜 제한에 해당될 수 있으니 신청 전 반드시 확인해보세요.
+          </p>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-sm">
         <SaveToggleButton userId={user.id} programId={program.id} initialSaved={!!savedRow} />
@@ -67,10 +78,6 @@ export default async function ProgramDetailPage({ params }: { params: { id: stri
           <CardTitle>지원 개요</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-md text-body-sm">
-          <div>
-            <p className="text-stone">지원 금액</p>
-            <p className="font-medium text-ink">{formatAmount(program.amount_text, program.amount_max)}</p>
-          </div>
           <div>
             <p className="text-stone">접수 기간</p>
             <p className="font-medium text-ink">
@@ -120,13 +127,20 @@ export default async function ProgramDetailPage({ params }: { params: { id: stri
       )}
 
       {isPro ? (
-        <DraftAssistant programId={program.id} />
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center gap-sm p-lg text-center sm:flex-row sm:justify-between sm:text-left">
+            <p className="text-body-sm text-charcoal">사업계획서 초안을 AI로 작성해드려요.</p>
+            <Link href={`/program/${program.id}/generate`} className="shrink-0">
+              <Button size="sm">사업계획서 생성</Button>
+            </Link>
+          </CardContent>
+        </Card>
       ) : (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center gap-sm p-lg text-center sm:flex-row sm:justify-between sm:text-left">
             <p className="text-body-sm text-charcoal">
               {TOSS_ENABLED
-                ? 'Pro 플랜에서 신청서 초안을 AI로 작성할 수 있어요.'
+                ? 'Pro 플랜에서 사업계획서를 AI로 작성할 수 있어요.'
                 : 'Pro 플랜은 결제 연동 준비 중이에요.'}
             </p>
             {TOSS_ENABLED && (

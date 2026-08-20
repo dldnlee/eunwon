@@ -18,7 +18,7 @@ export default async function DashboardPage() {
     .eq('id', user.id)
     .maybeSingle();
 
-  if (!profile) redirect('/onboarding');
+  if (!profile || !profile.onboarding_complete) redirect('/onboard');
 
   const [programs, { data: savedRows }] = await Promise.all([
     getMatchedPrograms(supabase, profile as Profile),
@@ -28,10 +28,11 @@ export default async function DashboardPage() {
   return (
     <div>
       <h1 className="mb-xl text-heading-sm text-ink">
-        {profile.business_name ?? '내 사업'}에 맞는 지원사업
+        {profile.company_name ?? '내 사업'}에 맞는 지원사업
       </h1>
       <DashboardClient
         userId={user.id}
+        profile={profile as Profile}
         initialPrograms={programs}
         savedProgramIds={(savedRows ?? []).map((r) => r.program_id)}
         isPro={profile.subscription === 'pro'}

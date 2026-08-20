@@ -18,8 +18,8 @@ const FEATURES = [
   },
   {
     icon: FileText,
-    title: '신청서 초안 작성',
-    description: '사업계획서 목차와 작성 가이드까지 AI가 함께 만들어드려요.',
+    title: '사업계획서 생성',
+    description: '사업 개요부터 기대 효과까지, 신청서에 바로 쓸 수 있는 초안을 AI가 작성해드려요.',
   },
 ];
 
@@ -29,7 +29,7 @@ export default function LandingPage() {
       {/* Nav */}
       <header className="border-b border-hairline-soft">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-xl py-md">
-          <span className="text-card-title text-ink">지원사업매칭</span>
+          <span className="text-card-title text-ink">Eunwon AI</span>
           <div className="flex items-center gap-xs">
             <Link href="/login">
               <Button variant="ghost" size="sm">로그인</Button>
@@ -127,10 +127,13 @@ export default function LandingPage() {
                     <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> &ldquo;왜 나에게 맞나요?&rdquo; AI 설명
                   </li>
                   <li className="flex items-center gap-xs">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 신청서 초안 작성 도우미
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 사업계획서 생성 도우미
                   </li>
                   <li className="flex items-center gap-xs">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 신규 매칭 이메일 알림
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 신규 매칭 · 마감 임박 이메일 알림
+                  </li>
+                  <li className="flex items-center gap-xs">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 중복수혜 제한 확인
                   </li>
                 </ul>
                 {TOSS_ENABLED ? (
@@ -149,7 +152,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="border-t border-hairline-soft py-xl text-center text-caption text-stone">
-        © {new Date().getFullYear()} 지원사업매칭
+        © {new Date().getFullYear()} Eunwon AI
       </footer>
     </div>
   );

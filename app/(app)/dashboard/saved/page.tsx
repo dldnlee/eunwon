@@ -14,7 +14,7 @@ export default async function SavedProgramsPage() {
 
   const { data: rows } = await supabase
     .from('saved_programs')
-    .select('id, status, notes, program:programs(*)')
+    .select('id, status, notes, outcome, received_at, amount_krw, program:programs(*)')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
@@ -22,6 +22,9 @@ export default async function SavedProgramsPage() {
     id: string;
     status: SavedStatus;
     notes: string | null;
+    outcome: string | null;
+    received_at: string | null;
+    amount_krw: number | null;
     program: Program;
   }[];
 
@@ -44,6 +47,9 @@ export default async function SavedProgramsPage() {
               program={row.program}
               initialStatus={row.status}
               initialNotes={row.notes ?? ''}
+              initialOutcome={row.outcome ?? ''}
+              initialReceivedAt={row.received_at ?? ''}
+              initialAmountKrw={row.amount_krw != null ? String(row.amount_krw) : ''}
             />
           ))}
         </div>

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { draftApplicationOutline } from '@/lib/ai/draftApplication';
+import { generateDocument } from '@/lib/ai/generateDocument';
 import type { Profile, Program } from '@/lib/types';
 
 export async function POST(request: Request) {
@@ -39,10 +39,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const outline = await draftApplicationOutline(program as Program, profile as Profile);
-    return NextResponse.json({ outline });
+    const document = await generateDocument(program as Program, profile as Profile);
+    return NextResponse.json({ document });
   } catch (err) {
-    console.error('draftApplicationOutline failed:', err);
-    return NextResponse.json({ error: '초안 생성에 실패했습니다' }, { status: 500 });
+    console.error('generateDocument failed:', err);
+    return NextResponse.json({ error: '신청서 생성에 실패했습니다' }, { status: 500 });
   }
 }

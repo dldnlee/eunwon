@@ -12,11 +12,11 @@ export default async function OnboardingPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id')
+    .select('onboarding_complete')
     .eq('id', user.id)
     .maybeSingle();
 
-  if (profile) redirect('/dashboard');
+  if (profile?.onboarding_complete) redirect('/dashboard');
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface p-md">

@@ -69,10 +69,13 @@ export function UpgradeForm() {
                 <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> &ldquo;왜 나에게 맞나요?&rdquo; AI 설명
               </li>
               <li className="flex items-center gap-xs">
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 신청서 초안 작성 도우미
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 사업계획서 생성 도우미
               </li>
               <li className="flex items-center gap-xs">
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 신규 매칭 이메일 알림
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 신규 매칭 · 마감 임박 이메일 알림
+              </li>
+              <li className="flex items-center gap-xs">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 중복수혜 제한 확인
               </li>
             </ul>
             {error && (

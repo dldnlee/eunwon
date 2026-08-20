@@ -46,9 +46,14 @@ export function stripHtml(html: string): string {
     .trim();
 }
 
-/** Business age in whole months, from a founding date to now. */
-export function getAgeMonths(foundedAt: string | Date | null): number {
-  if (!foundedAt) return 0;
+/**
+ * Business age in whole months, from a founding date to now. Not a DB generated
+ * column (Postgres requires generated-column expressions to be IMMUTABLE, and
+ * anything touching "now" is only STABLE) — instead this is called wherever
+ * profiles.age_months is written, so it stays current as of that write.
+ */
+export function getAgeMonths(foundedAt: string | Date | null): number | null {
+  if (!foundedAt) return null;
   const founded = typeof foundedAt === 'string' ? new Date(foundedAt) : foundedAt;
   const now = new Date();
   return (
@@ -65,12 +70,6 @@ export function daysUntil(dateStr: string | null): number | null {
   today.setHours(0, 0, 0, 0);
   deadline.setHours(0, 0, 0, 0);
   return Math.round((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-}
-
-export function formatAmount(amountText: string | null, amountMax: number | null): string {
-  if (amountText) return amountText;
-  if (amountMax) return `최대 ${(amountMax / 10_000).toLocaleString()}만원`;
-  return '금액 미공개';
 }
 
 export function formatKoreanDate(dateStr: string | null): string {

@@ -38,7 +38,7 @@ export default function SignupPage() {
 
     // Email confirmation disabled in Supabase project settings → session exists immediately
     if (data.session) {
-      router.push('/onboarding');
+      router.push('/onboard');
       router.refresh();
       return;
     }

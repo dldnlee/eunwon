@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const PROTECTED_PREFIXES = ['/dashboard', '/program', '/saved', '/settings'];
+const PROTECTED_PREFIXES = ['/dashboard', '/program', '/settings', '/onboard'];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
@@ -43,5 +43,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/program/:path*', '/saved/:path*', '/settings/:path*'],
+  matcher: ['/dashboard/:path*', '/program/:path*', '/settings/:path*', '/onboard/:path*'],
 };

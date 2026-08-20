@@ -1,6 +1,8 @@
 export type EntityType = '법인' | '개인사업자' | '예비창업자';
 export type Subscription = 'free' | 'pro';
-export type SavedStatus = '관심' | '신청중' | '완료';
+export type SavedStatus = 'saved' | 'applied' | 'selected' | 'rejected';
+export type NotificationType = 'new_match' | 'deadline_7d' | 'deadline_3d' | 'deadline_1d';
+export type DocumentType = 'bizreg' | 'financial' | 'resume' | 'past_application';
 
 export interface Program {
   id: string;
@@ -27,15 +29,7 @@ export interface Program {
 
   hashtags_raw: string | null;
 
-  business_types: string[] | null;
-  min_employees: number | null;
-  max_employees: number | null;
-  min_revenue: number | null;
-  max_revenue: number | null;
-  min_age_months: number | null;
   max_age_months: number | null;
-  amount_text: string | null;
-  amount_max: number | null;
 
   ai_summary: string | null;
   ai_tags: string[];
@@ -47,19 +41,31 @@ export interface Program {
 
 export interface Profile {
   id: string;
-  business_name: string | null;
-  business_type: string;
-  region: string;
+  company_name: string | null;
+  representative_name: string | null;
+  business_number: string | null;
+
   entity_type: EntityType;
-  employee_count: number | null;
-  annual_revenue: number | null;
+  industry_code: string | null;
+  industry_name: string | null;
+  tech_domains: string[];
+
   founded_at: string | null;
-  is_tech_company: boolean;
+  age_months: number | null;          // app-computed on every write — see lib/utils.ts:getAgeMonths
+  region: string;
+  employee_count: number | null;
+  annual_revenue_krw: number | null;
+
+  certifications: string[];
   extra_tags: string[];
+  current_challenges: string | null;
+
   subscription: Subscription;
   notify_email: boolean;
+  onboarding_complete: boolean;
   toss_billing_key: string | null;
   toss_customer_key: string | null;
+
   created_at: string;
   updated_at: string;
 }
@@ -69,15 +75,29 @@ export interface SavedProgram {
   user_id: string;
   program_id: string;
   status: SavedStatus;
+  outcome: string | null;
+  received_at: string | null;
+  amount_krw: number | null;
   notes: string | null;
   created_at: string;
 }
 
-export interface Notification {
+export interface NotificationLog {
   id: string;
   user_id: string;
   program_id: string;
+  type: NotificationType;
   sent_at: string;
+}
+
+export interface UserDocument {
+  id: string;
+  user_id: string;
+  type: DocumentType;
+  filename: string;
+  storage_path: string;
+  year: number | null;
+  created_at: string;
 }
 
 // A generated Supabase `Database` type (via `supabase gen types typescript`) is

@@ -1,6 +1,5 @@
 import { generateText } from './client';
 import type { Program, Profile } from '@/lib/types';
-import { getAgeMonths } from '@/lib/utils';
 
 /**
  * Personalized 1-2 sentence explanation of why a program fits this user's
@@ -12,9 +11,9 @@ export async function explainMatch(program: Program, profile: Profile): Promise<
     prompt: `사용자의 사업과 지원사업의 매칭 이유를 1-2문장으로 설명해주세요.
 
 사용자 정보:
-- 업종: ${profile.business_type}
+- 업종: ${profile.industry_name ?? '미입력'}
 - 지역: ${profile.region}
-- 업력: ${getAgeMonths(profile.founded_at)}개월
+- 업력: ${profile.age_months ?? '미입력'}개월
 - 직원수: ${profile.employee_count ?? '미입력'}명
 
 지원사업: ${program.title}

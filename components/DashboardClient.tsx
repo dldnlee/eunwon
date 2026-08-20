@@ -9,17 +9,20 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TOSS_ENABLED } from '@/lib/payments';
+import { scoreMatch, MAX_MATCH_SCORE } from '@/lib/matching';
 import { SearchX } from 'lucide-react';
-import type { Program } from '@/lib/types';
+import type { Program, Profile } from '@/lib/types';
 
 export function DashboardClient({
   userId,
+  profile,
   initialPrograms,
   savedProgramIds,
   isPro,
   freeLimit,
 }: {
   userId: string;
+  profile: Profile;
   initialPrograms: Program[];
   savedProgramIds: string[];
   isPro: boolean;
@@ -118,6 +121,7 @@ export function DashboardClient({
                 saved={saved.has(program.id)}
                 onToggleSave={toggleSave}
                 showExplainButton={isPro}
+                matchScorePercent={Math.round((scoreMatch(program, profile) / MAX_MATCH_SCORE) * 100)}
               />
             ))}
           </div>
@@ -128,7 +132,7 @@ export function DashboardClient({
             <p className="text-body-sm text-brand-blue-700">
               {hiddenCount}건의 매칭 결과를 더 보려면 Pro로 업그레이드하세요.
             </p>
-            <Link href={TOSS_ENABLED ? '/upgrade' : '/settings'} className="shrink-0">
+            <Link href={TOSS_ENABLED ? '/upgrade' : '/settings/billing'} className="shrink-0">
               <Button size="sm">Pro로 업그레이드</Button>
             </Link>
           </div>

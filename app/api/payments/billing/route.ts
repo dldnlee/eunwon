@@ -32,7 +32,7 @@ export async function GET(request: Request) {
       billingKey,
       customerKey,
       orderId: `${user.id}-${Date.now()}`,
-      orderName: '지원사업매칭 Pro 정기결제',
+      orderName: 'Eunwon AI Pro 정기결제',
       amount: PRO_MONTHLY_PRICE_KRW,
     });
 
