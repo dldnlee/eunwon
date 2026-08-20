@@ -1,0 +1,65 @@
+<!--
+  Supabase Auth → Authentication → Email Templates → Confirm signup
+
+  Subject line to set there:
+    [eunwon AI] 이메일 인증을 완료해주세요
+
+  Paste everything below into the "Message body" field. Supabase's Go template
+  variables ({{ .ConfirmationURL }} etc.) are preserved as-is — do not escape them.
+-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f5f4; padding:40px 0; font-family:'DM Sans', Helvetica, Arial, sans-serif;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border:1px solid #e5e5e3; border-radius:16px; overflow:hidden;">
+        <tr>
+          <td style="padding:40px 40px 8px 40px;">
+            <p style="margin:0; font-size:20px; font-weight:700; color:#171717; letter-spacing:-0.01em;">
+              eunwon AI
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:24px 40px 0 40px;">
+            <h1 style="margin:0 0 16px 0; font-size:22px; line-height:1.4; font-weight:700; color:#171717;">
+              이메일 인증을 완료해주세요
+            </h1>
+            <p style="margin:0 0 24px 0; font-size:15px; line-height:1.7; color:#57534e;">
+              eunwon AI 회원가입을 시작해주셔서 감사해요.<br />
+              아래 버튼을 눌러 이메일 인증을 완료하면 바로 사업 정보를 입력하고
+              내 사업에 맞는 정부지원사업을 확인할 수 있어요.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 40px 32px 40px;" align="center">
+            <a
+              href="{{ .ConfirmationURL }}"
+              style="display:inline-block; background-color:#171717; color:#ffffff; font-size:15px; font-weight:600; text-decoration:none; padding:14px 32px; border-radius:999px;"
+            >
+              이메일 인증하기
+            </a>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 40px 32px 40px;">
+            <p style="margin:0; font-size:13px; line-height:1.6; color:#a3a09c;">
+              버튼이 작동하지 않는다면 아래 링크를 복사해서 브라우저에 붙여넣어주세요.<br />
+              <a href="{{ .ConfirmationURL }}" style="color:#2563eb; word-break:break-all;">{{ .ConfirmationURL }}</a>
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:24px 40px; border-top:1px solid #f0efed;">
+            <p style="margin:0; font-size:13px; line-height:1.6; color:#a3a09c;">
+              본인이 요청하지 않았다면 이 이메일을 무시해주세요. 계정은 생성되지 않아요.<br />
+              문의: <a href="mailto:alerts@eunwon.com" style="color:#a3a09c;">alerts@eunwon.com</a>
+            </p>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:24px 0 0 0; font-size:12px; color:#a3a09c;">
+        © 2026 eunwon AI · eunwon.com
+      </p>
+    </td>
+  </tr>
+</table>

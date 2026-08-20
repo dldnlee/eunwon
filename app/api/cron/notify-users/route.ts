@@ -78,7 +78,7 @@ export async function GET(request: Request) {
       if (fresh.length > 0) {
         try {
           await resend.emails.send({
-            from: 'Eunwon AI <alerts@eunwon.com>',
+            from: 'eunwon AI <alerts@eunwon.com>',
             to: email,
             subject: `새로운 지원사업 ${fresh.length}건이 매칭됐어요`,
             html: buildNewMatchEmailHtml(fresh),
@@ -121,7 +121,7 @@ export async function GET(request: Request) {
 
       try {
         await resend.emails.send({
-          from: 'Eunwon AI <alerts@eunwon.com>',
+          from: 'eunwon AI <alerts@eunwon.com>',
           to: email,
           subject: `[마감 ${milestone.days}일] ${program.title}`,
           html: buildDeadlineEmailHtml(program, milestone.days),

@@ -8,7 +8,7 @@ Guidance for Claude Code when working in this repository.
 
 ## Design System
 
-All UI work — new pages, components, or styling changes — **must** follow [`DESIGN.md`](./DESIGN.md), the project's design system. Read its "Eunwon Adaptation Notes" section first: the token set was extracted from a different company's site and that section explains how it maps to this product.
+All UI work — new pages, components, or styling changes — **must** follow [`DESIGN.md`](./DESIGN.md), the project's design system. Read its "eunwon Adaptation Notes" section first: the token set was extracted from a different company's site and that section explains how it maps to this product.
 
 - Reference design tokens by name (`{colors.primary}`, `{typography.body-md}`, `{rounded.full}`, etc.) — don't introduce ad hoc colors, font sizes, or radii outside the system.
 - Buttons, pill tabs, and badges are always `rounded-full`. Cards use the documented radius scale.

@@ -1,4 +1,4 @@
-# Eunwon AI
+# eunwon AI
 
 Matches Korean SMBs/startups against government support programs (정부지원사업), enriched
 and explained with Upstage Solar Pro. Built from [`docs/jiwon-plan.md`](docs/jiwon-plan.md) (the

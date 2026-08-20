@@ -378,12 +378,12 @@ components:
     padding: "{spacing.xl}"
 ---
 
-## Eunwon Adaptation Notes
+## eunwon Adaptation Notes
 
 This design system was extracted from MiniMax (an AI infrastructure vendor) and is adopted here as **eunwon**'s visual foundation. The token architecture — color roles, type scale, spacing, radius, elevation, component anatomy — transfers directly. A few things are deliberately reinterpreted for a Korean government-support-program matching SaaS rather than a multi-product AI platform:
 
 - **Primary CTAs stay the `{colors.primary}` black pill**, per the system's own Do's list. This replaces eunwon's previous ad-hoc blue-600 buttons everywhere — the single biggest visible change.
-- **The four "product identity" brand colors** (coral, magenta, blue, purple) were built to distinguish MiniMax's separate model lines via full-bleed gradient hero cards. Eunwon has no equivalent product lineup, so they are **not** used as hero/gradient cards here. Instead, in line with the system's own rule ("never for general buttons or text"), they're repurposed narrowly:
+- **The four "product identity" brand colors** (coral, magenta, blue, purple) were built to distinguish MiniMax's separate model lines via full-bleed gradient hero cards. eunwon has no equivalent product lineup, so they are **not** used as hero/gradient cards here. Instead, in line with the system's own rule ("never for general buttons or text"), they're repurposed narrowly:
   - `brand-coral` → urgent-deadline accents (마감임박, D-7 이하)
   - `brand-blue` / `brand-blue-deep` → focus rings, links, Pro-tier accents
   - `success-bg` / `success-text` → confirmations, saved/active states

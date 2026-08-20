@@ -37,7 +37,7 @@ export async function GET(request: Request) {
         billingKey: profile.toss_billing_key!,
         customerKey: profile.toss_customer_key!,
         orderId: `${profile.id}-${Date.now()}`,
-        orderName: 'Eunwon AI Pro 정기결제',
+        orderName: 'eunwon AI Pro 정기결제',
         amount: PRO_MONTHLY_PRICE_KRW,
       });
       charged++;

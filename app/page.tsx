@@ -29,7 +29,7 @@ export default function LandingPage() {
       {/* Nav */}
       <header className="border-b border-hairline-soft">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-xl py-md">
-          <span className="text-card-title text-ink">Eunwon AI</span>
+          <span className="text-card-title text-ink">eunwon AI</span>
           <div className="flex items-center gap-xs">
             <Link href="/login">
               <Button variant="ghost" size="sm">로그인</Button>
@@ -152,7 +152,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="border-t border-hairline-soft py-xl text-center text-caption text-stone">
-        © {new Date().getFullYear()} Eunwon AI
+        © {new Date().getFullYear()} eunwon AI
       </footer>
     </div>
   );

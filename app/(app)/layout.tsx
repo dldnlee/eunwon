@@ -16,7 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <header className="sticky top-0 z-10 border-b border-hairline-soft bg-canvas">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-xl py-sm">
           <Link href="/dashboard" className="text-card-title text-ink">
-            Eunwon AI
+            eunwon AI
           </Link>
           <nav className="flex items-center gap-lg text-body-sm font-medium text-steel">
             <Link href="/dashboard" className="rounded-sm py-xs transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2">
