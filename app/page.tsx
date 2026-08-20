@@ -47,23 +47,29 @@ export default function LandingPage() {
         <div className="absolute -right-24 bottom-0 h-96 w-96 rounded-full bg-brand-blue-mid opacity-25 blur-3xl" />
       </div>
 
-      {/* Nav */}
-      <header className={`sticky top-0 z-20 border-b ${GLASS}`}>
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-xl py-md">
-          <span className="flex items-center gap-xs text-card-title text-ink">
+      {/* Nav — fixed (not sticky) so it stays pinned regardless of the overflow-hidden root above,
+          and so its glass background keeps showing the blobs behind it as content scrolls under it */}
+      <header className={`fixed inset-x-0 top-0 z-20 border-b ${GLASS}`}>
+        <div className="mx-auto flex max-w-6xl flex-nowrap items-center justify-between gap-sm px-md py-md sm:px-xl">
+          <span className="flex shrink-0 items-center gap-xs whitespace-nowrap text-card-title text-ink">
             <Logo className="h-6 w-auto" />
             eunwon AI
           </span>
-          <div className="flex items-center gap-xs">
-            <Link href="/login">
-              <Button variant="ghost" size="sm">로그인</Button>
+          <div className="flex shrink-0 items-center gap-xs">
+            <Link href="/login" className="hidden sm:block">
+              <Button variant="ghost" size="sm" className="whitespace-nowrap">로그인</Button>
             </Link>
             <Link href="/signup">
-              <Button size="sm">무료로 시작하기</Button>
+              <Button size="sm" className="whitespace-nowrap">
+                <span className="sm:hidden">시작하기</span>
+                <span className="hidden sm:inline">무료로 시작하기</span>
+              </Button>
             </Link>
           </div>
         </div>
       </header>
+      {/* Spacer for the fixed header above (measured ~69-77px depending on breakpoint) */}
+      <div className="h-20" aria-hidden="true" />
 
       {/* Hero */}
       <section className="relative">
