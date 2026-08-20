@@ -1,16 +1,15 @@
-// eunwon (은원 — 은 "silver" + 원 "circle") wordmark: two overlapping circles,
-// brand-blue-mid over ink, matching the founder's provided logo.
+import Image from 'next/image';
+
+// eunwon (은원 — 은 "silver" + 원 "circle") mark: two overlapping circles,
+// cropped from the founder-provided asset (public/logo-mark.png).
 export function Logo({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 56 32"
-      xmlns="http://www.w3.org/2000/svg"
+    <Image
+      src="/logo-mark.png"
+      alt="eunwon"
+      width={150}
+      height={75}
       className={className}
-      role="img"
-      aria-label="eunwon"
-    >
-      <circle cx="18" cy="16" r="16" fill="#3b82f6" />
-      <circle cx="38" cy="16" r="16" fill="#0a0a0a" />
-    </svg>
+    />
   );
 }
