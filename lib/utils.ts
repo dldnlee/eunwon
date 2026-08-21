@@ -77,3 +77,12 @@ export function formatKoreanDate(dateStr: string | null): string {
   const d = new Date(dateStr);
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
 }
+
+// Friendlier display-only label for a program category — the stored value
+// (from bizinfo's own classification, e.g. `programs.category`) stays raw so
+// filtering/matching logic never has to know about this mapping.
+const CATEGORY_LABELS: Record<string, string> = { '금융': '대출·보증' };
+
+export function categoryLabel(category: string): string {
+  return CATEGORY_LABELS[category] ?? category;
+}

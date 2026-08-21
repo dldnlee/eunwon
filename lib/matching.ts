@@ -55,7 +55,7 @@ export async function getMatchedProgramCount(
 }
 
 /** Highest possible return value of scoreMatch() — for normalizing to a percentage. */
-export const MAX_MATCH_SCORE = 4;
+export const MAX_MATCH_SCORE = 5;
 
 /**
  * Relevance score for ranking — counts how many *optional* criteria a
@@ -71,6 +71,7 @@ export function scoreMatch(program: Program, profile: Profile): number {
   if (!program.is_nationwide) score += 1; // region-specific programs rank slightly higher for a local user
   if (profile.extra_tags.some((tag) => program.ai_tags?.includes(tag))) score += 1;
   if (profile.certifications.some((cert) => program.ai_tags?.includes(cert))) score += 1;
+  if (program.category && profile.interest_categories.includes(program.category)) score += 1;
 
   return score;
 }

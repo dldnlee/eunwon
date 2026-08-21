@@ -10,11 +10,16 @@ import { Select } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
+import { BusinessNumberField } from '@/components/BusinessNumberField';
 import { cn, getAgeMonths } from '@/lib/utils';
 import { Check } from 'lucide-react';
 import type { EntityType } from '@/lib/types';
+import { toDbBusinessStatus, type BusinessStatus } from '@/lib/verification/business';
 
-const STEPS = ['사업 형태', '업종 · 지역', '규모', '추가 정보'] as const;
+// '사업자 정보' is only included for entity types that actually have a
+// registration number — 예비창업자 skip straight from '사업 형태' to '업종 · 지역'.
+const ALL_STEPS = ['사업 형태', '사업자 정보', '업종 · 지역', '규모', '추가 정보'] as const;
+type Step = (typeof ALL_STEPS)[number];
 
 const ENTITY_TYPES: { value: EntityType; label: string }[] = [
   { value: '예비창업자', label: '예비창업자 — 아직 사업자등록 전이에요' },
@@ -29,6 +34,8 @@ const REGIONS = [
 
 const CERTIFICATIONS = ['벤처기업', '이노비즈', '메인비즈'];
 const EXTRA_TAGS = ['여성기업', '장애인기업', '사회적기업', '재창업', '청년창업'];
+const TECH_DOMAINS = ['AI/소프트웨어', '바이오/헬스케어', '그린에너지/환경', '제조/하드웨어', '핀테크', '콘텐츠/미디어'];
+const INTEREST_CATEGORIES = ['경영', '기술', '수출', '창업', '내수', '인력', '금융'];
 
 function ChipGroup({
   label,
@@ -77,16 +84,27 @@ export function OnboardingForm({ userId }: { userId: string }) {
   const [error, setError] = useState<string | null>(null);
 
   const [entityType, setEntityType] = useState<EntityType>('개인사업자');
+  const [companyName, setCompanyName] = useState('');
+  const [representativeName, setRepresentativeName] = useState('');
+  const [businessNumber, setBusinessNumber] = useState('');
+  const [businessStatus, setBusinessStatus] = useState<BusinessStatus | null>(null);
   const [industryName, setIndustryName] = useState('');
+  const [techDomains, setTechDomains] = useState<string[]>([]);
   const [region, setRegion] = useState(REGIONS[0]);
   const [foundedAt, setFoundedAt] = useState('');
   const [employeeCount, setEmployeeCount] = useState(1);
   const [annualRevenue, setAnnualRevenue] = useState('');
   const [certifications, setCertifications] = useState<string[]>([]);
   const [extraTags, setExtraTags] = useState<string[]>([]);
+  const [interestCategories, setInterestCategories] = useState<string[]>([]);
   const [currentChallenges, setCurrentChallenges] = useState('');
 
-  const isLastStep = step === STEPS.length - 1;
+  // 예비창업자 have no registration number yet, so they never see that step.
+  const steps: Step[] = entityType === '예비창업자'
+    ? ALL_STEPS.filter((s) => s !== '사업자 정보')
+    : [...ALL_STEPS];
+  const currentStep = steps[step];
+  const isLastStep = step === steps.length - 1;
 
   function toggleFrom(list: string[], setList: (v: string[]) => void, value: string) {
     setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
@@ -96,11 +114,22 @@ export function OnboardingForm({ userId }: { userId: string }) {
     setSaving(true);
     setError(null);
 
+    const isRegistered = entityType !== '예비창업자';
     const supabase = createClient();
     const { error } = await supabase.from('profiles').upsert({
       id: userId,
       entity_type: entityType,
+      company_name: isRegistered ? companyName || null : null,
+      representative_name: isRegistered ? representativeName || null : null,
+      business_number: isRegistered ? businessNumber || null : null,
+      // The verify call already tried to persist this directly, but that
+      // update no-ops if this profile row doesn't exist yet — carry the
+      // locally-tracked result forward so it isn't lost on first save.
+      business_verified: isRegistered && businessStatus != null && businessStatus !== 'not_found',
+      business_status: isRegistered ? toDbBusinessStatus(businessStatus) : null,
+      business_verified_at: isRegistered && businessStatus != null ? new Date().toISOString() : null,
       industry_name: industryName || null,
+      tech_domains: techDomains,
       region,
       founded_at: foundedAt || null,
       age_months: getAgeMonths(foundedAt || null),
@@ -108,6 +137,7 @@ export function OnboardingForm({ userId }: { userId: string }) {
       annual_revenue_krw: annualRevenue ? Number(annualRevenue) : null,
       certifications,
       extra_tags: extraTags,
+      interest_categories: interestCategories,
       current_challenges: currentChallenges || null,
       onboarding_complete: true,
     });
@@ -127,13 +157,13 @@ export function OnboardingForm({ userId }: { userId: string }) {
     <div className="mx-auto flex w-full max-w-lg flex-col gap-xl">
       <div>
         <div className="mb-xs flex justify-between text-body-sm text-steel">
-          <span>{STEPS[step]}</span>
-          <span>{step + 1} / {STEPS.length}</span>
+          <span>{currentStep}</span>
+          <span>{step + 1} / {steps.length}</span>
         </div>
-        <Progress value={((step + 1) / STEPS.length) * 100} />
+        <Progress value={((step + 1) / steps.length) * 100} />
       </div>
 
-      {step === 0 && (
+      {currentStep === '사업 형태' && (
         <div className="flex flex-col gap-sm" role="radiogroup" aria-label="사업 형태">
           {ENTITY_TYPES.map((opt) => {
             const selected = entityType === opt.value;
@@ -160,7 +190,39 @@ export function OnboardingForm({ userId }: { userId: string }) {
         </div>
       )}
 
-      {step === 1 && (
+      {currentStep === '사업자 정보' && (
+        <div className="flex flex-col gap-xl">
+          <div className="grid grid-cols-1 gap-md sm:grid-cols-2">
+            <div className="flex flex-col gap-xs">
+              <Label htmlFor="companyName">상호명</Label>
+              <Input id="companyName" value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-xs">
+              <Label htmlFor="representativeName">대표자명</Label>
+              <Input
+                id="representativeName"
+                value={representativeName}
+                onChange={(e) => setRepresentativeName(e.target.value)}
+              />
+            </div>
+          </div>
+          <BusinessNumberField
+            value={businessNumber}
+            onChange={setBusinessNumber}
+            initialStatus={businessStatus}
+            onVerified={setBusinessStatus}
+          />
+          <button
+            type="button"
+            onClick={() => setStep((s) => s + 1)}
+            className="self-start text-body-sm text-steel underline-offset-2 hover:underline"
+          >
+            나중에 입력할게요
+          </button>
+        </div>
+      )}
+
+      {currentStep === '업종 · 지역' && (
         <div className="flex flex-col gap-xl">
           <div className="flex flex-col gap-xs">
             <Label htmlFor="industryName">업종</Label>
@@ -179,10 +241,16 @@ export function OnboardingForm({ userId }: { userId: string }) {
               ))}
             </Select>
           </div>
+          <ChipGroup
+            label="기술 분야 (해당 시, 선택)"
+            options={TECH_DOMAINS}
+            selected={techDomains}
+            onToggle={(v) => toggleFrom(techDomains, setTechDomains, v)}
+          />
         </div>
       )}
 
-      {step === 2 && (
+      {currentStep === '규모' && (
         <div className="flex flex-col gap-xl">
           <div className="flex flex-col gap-xs">
             <Label htmlFor="foundedAt">창업일 (선택)</Label>
@@ -221,7 +289,7 @@ export function OnboardingForm({ userId }: { userId: string }) {
         </div>
       )}
 
-      {step === 3 && (
+      {currentStep === '추가 정보' && (
         <div className="flex flex-col gap-xl">
           <ChipGroup
             label="인증 현황 (해당되는 항목 선택)"
@@ -234,6 +302,12 @@ export function OnboardingForm({ userId }: { userId: string }) {
             options={EXTRA_TAGS}
             selected={extraTags}
             onToggle={(v) => toggleFrom(extraTags, setExtraTags, v)}
+          />
+          <ChipGroup
+            label="관심 지원 분야 (선택)"
+            options={INTEREST_CATEGORIES}
+            selected={interestCategories}
+            onToggle={(v) => toggleFrom(interestCategories, setInterestCategories, v)}
           />
           <div className="flex flex-col gap-xs">
             <Label htmlFor="currentChallenges">지금 가장 필요한 지원은 무엇인가요? (선택)</Label>

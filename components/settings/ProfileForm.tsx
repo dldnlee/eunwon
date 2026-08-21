@@ -9,9 +9,11 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { BusinessNumberField } from '@/components/BusinessNumberField';
 import { cn, getAgeMonths } from '@/lib/utils';
 import { Check } from 'lucide-react';
 import type { EntityType, Profile } from '@/lib/types';
+import { toDbBusinessStatus, type BusinessStatus } from '@/lib/verification/business';
 
 const ENTITY_TYPES: EntityType[] = ['예비창업자', '개인사업자', '법인'];
 const REGIONS = [
@@ -19,6 +21,8 @@ const REGIONS = [
   '경기', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주',
 ];
 const CERTIFICATIONS = ['벤처기업', '이노비즈', '메인비즈'];
+const TECH_DOMAINS = ['AI/소프트웨어', '바이오/헬스케어', '그린에너지/환경', '제조/하드웨어', '핀테크', '콘텐츠/미디어'];
+const INTEREST_CATEGORIES = ['경영', '기술', '수출', '창업', '내수', '인력', '금융'];
 
 function ChipToggle({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
   return (
@@ -42,19 +46,26 @@ export function ProfileForm({ profile }: { profile: Profile }) {
   const [companyName, setCompanyName] = useState(profile.company_name ?? '');
   const [representativeName, setRepresentativeName] = useState(profile.representative_name ?? '');
   const [businessNumber, setBusinessNumber] = useState(profile.business_number ?? '');
+  const [businessStatus, setBusinessStatus] = useState<BusinessStatus | null>(profile.business_status);
   const [entityType, setEntityType] = useState<EntityType>(profile.entity_type);
   const [industryName, setIndustryName] = useState(profile.industry_name ?? '');
+  const [techDomains, setTechDomains] = useState<string[]>(profile.tech_domains);
   const [region, setRegion] = useState(profile.region);
   const [foundedAt, setFoundedAt] = useState(profile.founded_at ?? '');
   const [employeeCount, setEmployeeCount] = useState(String(profile.employee_count ?? ''));
   const [annualRevenue, setAnnualRevenue] = useState(String(profile.annual_revenue_krw ?? ''));
   const [certifications, setCertifications] = useState<string[]>(profile.certifications);
+  const [interestCategories, setInterestCategories] = useState<string[]>(profile.interest_categories);
   const [currentChallenges, setCurrentChallenges] = useState(profile.current_challenges ?? '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   function toggleCertification(cert: string) {
     setCertifications((prev) => (prev.includes(cert) ? prev.filter((c) => c !== cert) : [...prev, cert]));
+  }
+
+  function toggleFrom(list: string[], setList: (v: string[]) => void, value: string) {
+    setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   }
 
   async function handleSave() {
@@ -68,14 +79,18 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         company_name: companyName || null,
         representative_name: representativeName || null,
         business_number: businessNumber || null,
+        business_verified: businessStatus != null && businessStatus !== 'not_found',
+        business_status: toDbBusinessStatus(businessStatus),
         entity_type: entityType,
         industry_name: industryName || null,
+        tech_domains: techDomains,
         region,
         founded_at: foundedAt || null,
         age_months: getAgeMonths(foundedAt || null),
         employee_count: employeeCount ? Number(employeeCount) : null,
         annual_revenue_krw: annualRevenue ? Number(annualRevenue) : null,
         certifications,
+        interest_categories: interestCategories,
         current_challenges: currentChallenges || null,
       })
       .eq('id', profile.id);
@@ -105,15 +120,12 @@ export function ProfileForm({ profile }: { profile: Profile }) {
             />
           </div>
         </div>
-        <div className="flex flex-col gap-xs">
-          <Label htmlFor="businessNumber">사업자등록번호</Label>
-          <Input
-            id="businessNumber"
-            value={businessNumber}
-            onChange={(e) => setBusinessNumber(e.target.value)}
-            placeholder="000-00-00000"
-          />
-        </div>
+        <BusinessNumberField
+          value={businessNumber}
+          onChange={setBusinessNumber}
+          initialStatus={businessStatus}
+          onVerified={setBusinessStatus}
+        />
         <div className="flex flex-col gap-xs">
           <Label htmlFor="entityType">사업 형태</Label>
           <Select id="entityType" value={entityType} onChange={(e) => setEntityType(e.target.value as EntityType)}>
@@ -125,6 +137,19 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         <div className="flex flex-col gap-xs">
           <Label htmlFor="industryName">업종</Label>
           <Input id="industryName" value={industryName} onChange={(e) => setIndustryName(e.target.value)} />
+        </div>
+        <div className="flex flex-col gap-sm">
+          <Label>기술 분야 (해당 시, 선택)</Label>
+          <div className="flex flex-wrap gap-xs">
+            {TECH_DOMAINS.map((domain) => (
+              <ChipToggle
+                key={domain}
+                label={domain}
+                selected={techDomains.includes(domain)}
+                onClick={() => toggleFrom(techDomains, setTechDomains, domain)}
+              />
+            ))}
+          </div>
         </div>
         <div className="flex flex-col gap-xs">
           <Label htmlFor="region">지역</Label>
@@ -171,6 +196,19 @@ export function ProfileForm({ profile }: { profile: Profile }) {
                 label={cert}
                 selected={certifications.includes(cert)}
                 onClick={() => toggleCertification(cert)}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-col gap-sm">
+          <Label>관심 지원 분야 (선택)</Label>
+          <div className="flex flex-wrap gap-xs">
+            {INTEREST_CATEGORIES.map((category) => (
+              <ChipToggle
+                key={category}
+                label={category}
+                selected={interestCategories.includes(category)}
+                onClick={() => toggleFrom(interestCategories, setInterestCategories, category)}
               />
             ))}
           </div>

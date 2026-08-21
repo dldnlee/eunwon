@@ -60,6 +60,11 @@ export interface Profile {
   certifications: string[];
   extra_tags: string[];
   current_challenges: string | null;
+  interest_categories: string[];
+
+  business_verified: boolean;
+  business_status: 'active' | 'suspended' | 'closed' | null;
+  business_verified_at: string | null;
 
   subscription: Subscription;
   notify_email: boolean;
@@ -89,6 +94,16 @@ export interface NotificationLog {
   program_id: string;
   type: NotificationType;
   sent_at: string;
+}
+
+export interface Review {
+  id: string;
+  author_name: string;
+  business_type: string;
+  rating: number;
+  content: string;
+  is_published: boolean;
+  created_at: string;
 }
 
 export interface UserDocument {

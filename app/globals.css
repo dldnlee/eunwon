@@ -16,4 +16,23 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+
+  .animate-marquee-reverse {
+    animation: marquee-reverse 42s linear infinite;
+  }
+}
+
+@keyframes marquee-reverse {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee-reverse {
+    animation: none;
+  }
 }

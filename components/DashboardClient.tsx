@@ -11,9 +11,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TOSS_ENABLED } from '@/lib/payments';
 import { scoreMatch, MAX_MATCH_SCORE } from '@/lib/matching';
-import { daysUntil } from '@/lib/utils';
+import { categoryLabel, cn, daysUntil } from '@/lib/utils';
 import { SearchX } from 'lucide-react';
 import type { Program, Profile } from '@/lib/types';
+
+/** bizinfo classifies loan/guarantee programs (정책자금 융자, 특례보증, 이차보전, ...) under '금융'. */
+const LOAN_CATEGORY = '금융';
 
 export function DashboardClient({
   userId,
@@ -33,6 +36,7 @@ export function DashboardClient({
   const [saved, setSaved] = useState<Set<string>>(new Set(savedProgramIds));
   const [category, setCategory] = useState('전체');
   const [region, setRegion] = useState('전체');
+  const [loanOnly, setLoanOnly] = useState(false);
 
   const categories = useMemo(
     () => ['전체', ...Array.from(new Set(initialPrograms.map((p) => p.category).filter(Boolean)))] as string[],
@@ -46,12 +50,13 @@ export function DashboardClient({
   const filtered = initialPrograms.filter((p) => {
     if (category !== '전체' && p.category !== category) return false;
     if (region !== '전체' && !p.region.includes(region) && !p.is_nationwide) return false;
+    if (loanOnly && p.category !== LOAN_CATEGORY && !p.ai_tags?.includes('대출')) return false;
     return true;
   });
 
   const visible = isPro ? filtered : filtered.slice(0, freeLimit);
   const hiddenCount = isPro ? 0 : Math.max(0, filtered.length - freeLimit);
-  const isFiltered = category !== '전체' || region !== '전체';
+  const isFiltered = category !== '전체' || region !== '전체' || loanOnly;
 
   const deadlineSoonCount = initialPrograms.filter((p) => {
     const days = daysUntil(p.deadline_end);
@@ -61,6 +66,7 @@ export function DashboardClient({
   function resetFilters() {
     setCategory('전체');
     setRegion('전체');
+    setLoanOnly(false);
   }
 
   async function toggleSave(programId: string) {
@@ -92,7 +98,7 @@ export function DashboardClient({
             <Label htmlFor="category-filter">카테고리</Label>
             <Select id="category-filter" value={category} onChange={(e) => setCategory(e.target.value)}>
               {categories.map((c) => (
-                <option key={c} value={c}>{c}</option>
+                <option key={c} value={c}>{c === '전체' ? c : categoryLabel(c)}</option>
               ))}
             </Select>
           </div>
@@ -104,6 +110,18 @@ export function DashboardClient({
               ))}
             </Select>
           </div>
+          <button
+            type="button"
+            aria-pressed={loanOnly}
+            onClick={() => setLoanOnly((v) => !v)}
+            className={cn(
+              'rounded-full border px-md py-xs text-body-sm transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2',
+              loanOnly ? 'border-ink bg-ink text-on-primary' : 'border-hairline text-steel hover:bg-surface'
+            )}
+          >
+            대출·보증 지원사업만 보기
+          </button>
         </aside>
 
         <div>

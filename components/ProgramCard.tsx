@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { cn, daysUntil, formatKoreanDate } from '@/lib/utils';
+import { categoryLabel, cn, daysUntil, formatKoreanDate } from '@/lib/utils';
 import type { Program } from '@/lib/types';
 import { Bookmark } from 'lucide-react';
 
@@ -34,7 +34,9 @@ export function ProgramCard({
       <CardHeader>
         <div className="flex items-start justify-between gap-xs">
           <div className="flex flex-wrap gap-xs">
-            {program.category && <Badge variant="outline">{program.category}</Badge>}
+            {program.category && (
+              <Badge variant="outline">{categoryLabel(program.category)}</Badge>
+            )}
             <DeadlineBadge deadlineEnd={program.deadline_end} />
             {matchScorePercent != null && (
               <Badge variant="success">매칭도 {matchScorePercent}%</Badge>

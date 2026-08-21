@@ -3,7 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Logo } from '@/components/Logo';
+import { ReviewsMarquee } from '@/components/ReviewsMarquee';
+import { FaqSection } from '@/components/FaqSection';
+import { createClient } from '@/lib/supabase/server';
 import { TOSS_ENABLED } from '@/lib/payments';
+import type { Review } from '@/lib/types';
 import { CheckCircle2, Search, Sparkles, FileText } from 'lucide-react';
 
 const FEATURES = [
@@ -34,7 +38,25 @@ const FEATURES = [
 // border, so the fixed color blobs behind read through every panel.
 const GLASS = 'border-white/60 bg-canvas/50 backdrop-blur-xl';
 
-export default function LandingPage() {
+async function getReviews(): Promise<Review[]> {
+  // Swallow errors so a not-yet-migrated `reviews` table just hides the
+  // section instead of breaking the landing page.
+  try {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from('reviews')
+      .select('*')
+      .eq('is_published', true)
+      .order('created_at', { ascending: false });
+    return (data ?? []) as Review[];
+  } catch {
+    return [];
+  }
+}
+
+export default async function LandingPage() {
+  const reviews = await getReviews();
+
   return (
     <div className="relative isolate min-h-screen overflow-hidden bg-canvas">
       {/* Background color field, spread down the full page height so every glass panel — however far down you scroll — has some color behind it */}
@@ -111,6 +133,14 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Reviews */}
+      {reviews.length > 0 && (
+        <section className="relative py-section">
+          <h2 className="mb-xl text-center text-heading-md text-ink">이용자들의 후기</h2>
+          <ReviewsMarquee reviews={reviews} />
+        </section>
+      )}
+
       {/* Pricing */}
       <section className="relative border-t border-white/60 py-section">
         <div className="relative mx-auto max-w-4xl px-xl">
@@ -185,8 +215,13 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <FaqSection />
+
       <footer className={`relative border-t ${GLASS} py-xl text-center text-caption text-stone`}>
-        © {new Date().getFullYear()} eunwon AI
+        <p>© {new Date().getFullYear()} eunwon AI</p>
+        <Link href="/contact" className="mt-xs inline-block text-body-sm text-steel hover:text-ink hover:underline">
+          문의하기
+        </Link>
       </footer>
     </div>
   );
