@@ -7,6 +7,7 @@
 //   NEXT_PUBLIC_SUPABASE_URL
 //   SUPABASE_SERVICE_ROLE_KEY
 
+import { createHash } from 'crypto';
 import { generateText, parseJsonResponse } from '../ai/client';
 import { createServiceClient } from '../supabase/server';
 import { stripHtml } from '../utils';
@@ -56,6 +57,15 @@ interface EnrichedData {
 export interface SyncResult {
   synced: number;
   skipped: number;
+  reenriched: number;
+  closed: number;
+}
+
+/** Stable content hash of the fields that feed a program's record — used to
+ *  detect whether anything changed since the last sync, so unchanged
+ *  programs can skip the per-item AI enrichment call. */
+function hashItem(item: ApiItem): string {
+  return createHash('sha256').update(JSON.stringify(item)).digest('hex');
 }
 
 /** Parse "2026-08-12 ~ 2026-08-31" → { start, end } as Date objects */
@@ -162,7 +172,8 @@ async function enrichWithAI(item: ApiItem): Promise<EnrichedData> {
 
 async function upsertProgram(
   supabase: ReturnType<typeof createServiceClient>,
-  item: ApiItem
+  item: ApiItem,
+  sourceHash: string
 ): Promise<void> {
   const { start, end } = parseDeadline(item.reqstBeginEndDe);
   const enriched = await enrichWithAI(item);
@@ -190,6 +201,7 @@ async function upsertProgram(
     max_age_months: enriched.max_age_months,
     is_nationwide:  enriched.is_nationwide,
     apply_steps:    enriched.apply_steps,
+    source_hash:    sourceHash,
     is_active:      true,
     updated_at:     new Date().toISOString(),
   };
@@ -225,19 +237,38 @@ async function fetchPage(pageNo: number): Promise<{ items: ApiItem[]; totalCount
   return { items, totalCount: Number(body.totalCount) };
 }
 
-/** Full nightly sync: fetch every active bizinfo program, enrich with AI, upsert into Supabase. */
+/**
+ * Full nightly sync: fetch every active bizinfo program, enrich changed ones with AI,
+ * upsert into Supabase.
+ *
+ * Two properties keep this safe under Vercel's 300s function timeout, which a full
+ * pass with AI enrichment on every item can't reliably fit inside:
+ *
+ * 1. AI re-enrichment is skipped for programs whose source content hasn't changed
+ *    since the last sync (compared via `source_hash`) — only new/changed programs
+ *    pay for an LLM call, so a typical night's pass is fast.
+ * 2. Rows are never blanket-reset to inactive up front. `external_id`s seen this run
+ *    are tracked, and only past-deadline rows that weren't seen are flipped inactive
+ *    — and only after a fully-completed pass. A partial/timed-out run just leaves
+ *    whatever it didn't reach untouched instead of wiping the whole catalog.
+ */
 export async function syncPrograms(log: (msg: string) => void = console.log): Promise<SyncResult> {
   const supabase = createServiceClient();
 
   log('🚀 Starting program sync...');
 
-  // Mark all existing programs inactive — we'll reactivate ones still in the API
-  await supabase.from('programs').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000');
+  const { data: existingRows } = await supabase
+    .from('programs')
+    .select('external_id, source_hash')
+    .eq('source', 'bizinfo');
+  const existingHashes = new Map((existingRows ?? []).map((r) => [r.external_id, r.source_hash]));
 
+  const seen = new Set<string>();
   let pageNo = 1;
   let totalCount = Infinity;
   let synced = 0;
   let skipped = 0;
+  let reenriched = 0;
 
   while ((pageNo - 1) * PAGE_SIZE < totalCount) {
     log(`📄 Fetching page ${pageNo}...`);
@@ -245,6 +276,8 @@ export async function syncPrograms(log: (msg: string) => void = console.log): Pr
     totalCount = total;
 
     log(`   ${items.length} items (${total} total)`);
+
+    const unchangedIds: string[] = [];
 
     for (const item of items) {
       const { end } = parseDeadline(item.reqstBeginEndDe);
@@ -255,16 +288,55 @@ export async function syncPrograms(log: (msg: string) => void = console.log): Pr
         continue;
       }
 
-      await upsertProgram(supabase, item);
+      seen.add(item.pblancId);
+      const hash = hashItem(item);
+
+      if (existingHashes.get(item.pblancId) === hash) {
+        // Unchanged since last sync — no need to re-run AI enrichment, just
+        // make sure the row is marked active.
+        unchangedIds.push(item.pblancId);
+        synced++;
+        continue;
+      }
+
+      await upsertProgram(supabase, item, hash);
+      reenriched++;
       synced++;
 
-      // Small delay to avoid hammering the AI API
+      // Small delay to avoid hammering the AI API — only needed when we actually called it.
       await new Promise((r) => setTimeout(r, 200));
+    }
+
+    if (unchangedIds.length > 0) {
+      await supabase.from('programs').update({ is_active: true }).in('external_id', unchangedIds);
     }
 
     pageNo++;
   }
 
-  log(`✅ Done. Synced: ${synced}, Skipped (closed): ${skipped}`);
-  return { synced, skipped };
+  // Reconciliation: close out programs that dropped off the feed and are already
+  // past their listed deadline. Only runs after every page was fetched successfully —
+  // if fetchPage() throws above, we never reach here, so a partial run can't
+  // incorrectly deactivate rows it just didn't get to.
+  const today = new Date().toISOString().split('T')[0];
+  const { data: staleCandidates } = await supabase
+    .from('programs')
+    .select('external_id')
+    .eq('source', 'bizinfo')
+    .eq('is_active', true)
+    .not('deadline_end', 'is', null)
+    .lt('deadline_end', today);
+
+  const closedIds = (staleCandidates ?? [])
+    .map((r) => r.external_id)
+    .filter((id) => !seen.has(id));
+
+  if (closedIds.length > 0) {
+    await supabase.from('programs').update({ is_active: false }).in('external_id', closedIds);
+  }
+
+  log(
+    `✅ Done. Synced: ${synced} (${reenriched} re-enriched via AI), Skipped (closed): ${skipped}, Closed (stale): ${closedIds.length}`
+  );
+  return { synced, skipped, reenriched, closed: closedIds.length };
 }
