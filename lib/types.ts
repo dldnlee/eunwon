@@ -31,6 +31,22 @@ export interface Program {
   hashtags_raw: string | null;
 
   max_age_months: number | null;
+  min_age_months: number | null;
+
+  min_employees: number | null;
+  max_employees: number | null;
+  min_annual_revenue_krw: number | null;
+  max_annual_revenue_krw: number | null;
+
+  funding_amount_krw: number | null;
+  funding_type: string | null;
+
+  required_business_traits: string[];
+  required_tech_domains: string[];
+  required_certifications: string[];
+  required_extra_tags: string[];
+  required_rnd_capability: string[];
+  required_investment_stage: string | null;
 
   ai_summary: string | null;
   ai_tags: string[];
@@ -62,16 +78,51 @@ export interface Profile {
   current_challenges: string | null;
   interest_categories: string[];
 
+  business_description: string | null;
+  business_traits: string[];
+  rnd_capability: string[];
+  investment_stage: string | null;
+
   business_verified: boolean;
   business_status: 'active' | 'suspended' | 'closed' | null;
   business_verified_at: string | null;
+  business_tax_type: string | null;
+  business_closed_at: string | null;
 
   subscription: Subscription;
   notify_email: boolean;
   onboarding_complete: boolean;
   toss_billing_key: string | null;
   toss_customer_key: string | null;
+  trial_ending_notified_at: string | null;
 
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Event {
+  id: string;
+  external_id: string;
+  source: string;
+
+  title: string;
+  event_type: string | null;
+  category: string | null;
+  host_org: string | null;
+
+  description: string | null;
+
+  region: string[];
+  is_nationwide: boolean;
+
+  event_start: string | null;
+  event_end: string | null;
+  apply_start: string | null;
+  apply_end: string | null;
+
+  detail_url: string | null;
+
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
