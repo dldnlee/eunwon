@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getMatchedPrograms } from '@/lib/matching';
+import { isProUser, shouldWarnTrialEnding, trialDaysLeft } from '@/lib/trial';
 import { daysUntil } from '@/lib/utils';
 import type { NotificationType, Profile, Program } from '@/lib/types';
 
@@ -21,6 +22,10 @@ function buildDeadlineEmailHtml(program: Program, daysLeft: number): string {
   return `<h2>[마감 ${daysLeft}일] ${program.title}</h2><p>${program.agency} · 저장하신 지원사업의 마감이 다가오고 있어요.</p><p>${program.ai_summary ?? ''}</p>`;
 }
 
+function buildTrialEndingEmailHtml(daysLeft: number): string {
+  return `<h2>무료체험이 ${daysLeft}일 후 종료돼요</h2><p>가입 후 3개월간 이용하신 Pro 기능(무제한 매칭, AI 설명, 사업계획서 생성, 마감 알림)이 곧 무료 플랜으로 전환돼요.</p><p>계속 이용하시려면 결제를 등록해주세요.</p>`;
+}
+
 /** Highest daysUntil() value this cron ever fires a deadline alert for. */
 const DEADLINE_MILESTONES: { days: number; type: NotificationType }[] = [
   { days: 7, type: 'deadline_7d' },
@@ -29,12 +34,17 @@ const DEADLINE_MILESTONES: { days: number; type: NotificationType }[] = [
 ];
 
 /**
- * Daily job (see vercel.json), Pro-only per the freemium model: for each Pro
- * user with notify_email = true —
+ * Daily job (see vercel.json), Pro-only per the freemium model (real
+ * subscription OR still within the signup trial — see lib/trial.ts) : for
+ * each qualifying user with notify_email = true —
  *   1. email newly-matched programs not seen before (type: new_match)
  *   2. email 7/3/1-day deadline warnings for their saved programs
  * `notification_log`'s unique(user_id, program_id, type) constraint is what
  * makes both idempotent across daily re-runs.
+ *
+ * Separately (and regardless of notify_email — this is an account/billing
+ * notice, not a match-alert preference), warns trial users once in their
+ * final week before the trial lapses to the free plan. See lib/trial.ts.
  */
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
@@ -43,11 +53,13 @@ export async function GET(request: Request) {
   }
 
   const supabase = createServiceClient();
+  // Pro-vs-trial can't be filtered in SQL (trial is derived from
+  // auth.users.created_at), so fetch every notify_email profile and check
+  // isProUser() per-row below, once we have the auth user anyway for email.
   const { data: profiles, error } = await supabase
     .from('profiles')
     .select('*')
-    .eq('notify_email', true)
-    .eq('subscription', 'pro');
+    .eq('notify_email', true);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -60,6 +72,7 @@ export async function GET(request: Request) {
     const { data: authUser } = await supabase.auth.admin.getUserById(profile.id);
     const email = authUser?.user?.email;
     if (!email) continue;
+    if (!authUser?.user?.created_at || !isProUser(profile.subscription, authUser.user.created_at)) continue;
 
     // ─── new match alerts ────────────────────────────────────────────────
     const matched = await getMatchedPrograms(supabase, profile, { limit: 50 });
@@ -138,5 +151,49 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ usersNotified, deadlineAlertsSent });
+  // ─── trial-ending warnings ────────────────────────────────────────────
+  // Independent of notify_email and of the loop above — candidates are any
+  // non-paying account that hasn't been warned yet. subscription != 'pro'
+  // over-fetches slightly (includes accounts whose trial expired long ago
+  // and were never on notify_email), but shouldWarnTrialEnding() rejects
+  // those cheaply once we have their auth user's created_at.
+  let trialWarningsSent = 0;
+
+  const { data: trialCandidates, error: trialCandidatesError } = await supabase
+    .from('profiles')
+    .select('*')
+    .neq('subscription', 'pro')
+    .is('trial_ending_notified_at', null);
+
+  if (trialCandidatesError) {
+    console.error('Failed to fetch trial-ending candidates:', trialCandidatesError.message);
+  }
+
+  for (const profile of (trialCandidates ?? []) as Profile[]) {
+    const { data: authUser } = await supabase.auth.admin.getUserById(profile.id);
+    const email = authUser?.user?.email;
+    const createdAt = authUser?.user?.created_at;
+    if (!email || !createdAt) continue;
+    if (!shouldWarnTrialEnding(profile.subscription, createdAt, profile.trial_ending_notified_at)) continue;
+
+    try {
+      await resend.emails.send({
+        from: 'eunwon AI <alerts@eunwon.com>',
+        to: email,
+        subject: '무료체험 종료가 얼마 남지 않았어요',
+        html: buildTrialEndingEmailHtml(trialDaysLeft(createdAt)),
+      });
+
+      await supabase
+        .from('profiles')
+        .update({ trial_ending_notified_at: new Date().toISOString() })
+        .eq('id', profile.id);
+
+      trialWarningsSent++;
+    } catch (err) {
+      console.error(`Failed to send trial-ending warning to profile ${profile.id}:`, err);
+    }
+  }
+
+  return NextResponse.json({ usersNotified, deadlineAlertsSent, trialWarningsSent });
 }

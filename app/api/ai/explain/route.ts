@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { explainMatch } from '@/lib/ai/explainMatch';
+import { isProUser } from '@/lib/trial';
 import type { Profile, Program } from '@/lib/types';
 
 export async function POST(request: Request) {
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
     .eq('id', user.id)
     .single();
 
-  if (!profile || profile.subscription !== 'pro') {
+  if (!profile || !isProUser(profile.subscription, user.created_at)) {
     return NextResponse.json({ error: 'Pro 플랜이 필요합니다' }, { status: 403 });
   }
 

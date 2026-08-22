@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { NotificationSettingsForm } from '@/components/settings/NotificationSettingsForm';
+import { isProUser } from '@/lib/trial';
 
 export default async function NotificationSettingsPage() {
   const supabase = createClient();
@@ -22,7 +23,7 @@ export default async function NotificationSettingsPage() {
     <NotificationSettingsForm
       userId={user.id}
       initialNotifyEmail={profile.notify_email}
-      isPro={profile.subscription === 'pro'}
+      isPro={isProUser(profile.subscription, user.created_at)}
     />
   );
 }

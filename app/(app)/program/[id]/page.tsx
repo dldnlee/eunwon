@@ -9,6 +9,7 @@ import { ShareButton } from '@/components/ShareButton';
 import { MatchExplanation } from '@/components/MatchExplanation';
 import { TOSS_ENABLED } from '@/lib/payments';
 import { findDuplicateBenefitConflict } from '@/lib/matching';
+import { isProUser } from '@/lib/trial';
 import { formatKoreanDate } from '@/lib/utils';
 import { ExternalLink, AlertTriangle } from 'lucide-react';
 
@@ -33,7 +34,7 @@ export default async function ProgramDetailPage({ params }: { params: { id: stri
 
   if (!program) notFound();
 
-  const isPro = profile?.subscription === 'pro';
+  const isPro = !!profile && isProUser(profile.subscription, user.created_at);
   const duplicateConflict = await findDuplicateBenefitConflict(supabase, user.id, program);
 
   return (

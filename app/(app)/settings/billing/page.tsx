@@ -15,5 +15,5 @@ export default async function BillingSettingsPage() {
 
   if (!profile) redirect('/onboard');
 
-  return <BillingSection profile={profile as Profile} />;
+  return <BillingSection profile={profile as Profile} userCreatedAt={user.created_at} />;
 }
