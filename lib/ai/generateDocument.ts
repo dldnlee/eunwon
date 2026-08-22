@@ -19,6 +19,10 @@ export async function generateDocument(program: Program, profile: Profile): Prom
 - 소재지: ${profile.region}
 - 종업원 수: ${profile.employee_count ?? '미입력'}명
 - 연매출: ${revenueEok ? `${revenueEok}억원` : '미입력'}
+- 사업 내용: ${profile.business_description ?? '미입력'}
+- 사업 특성: ${profile.business_traits.join(', ') || '미입력'}
+- 연구개발 역량: ${profile.rnd_capability.join(', ') || '미입력'}
+- 투자유치 현황: ${profile.investment_stage ?? '미입력'}
 - 현재 과제: ${profile.current_challenges ?? '미입력'}
 
 [지원사업 정보]
