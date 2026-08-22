@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import { toDbBusinessStatus, type BusinessStatus } from '@/lib/verification/busi
 
 // '사업자 정보' is only included for entity types that actually have a
 // registration number — 예비창업자 skip straight from '사업 형태' to '업종 · 지역'.
-const ALL_STEPS = ['사업 형태', '사업자 정보', '업종 · 지역', '규모', '추가 정보'] as const;
+const ALL_STEPS = ['사업 형태', '사업자 정보', '업종 · 지역', '사업 아이템', '규모', '추가 정보'] as const;
 type Step = (typeof ALL_STEPS)[number];
 
 const ENTITY_TYPES: { value: EntityType; label: string }[] = [
@@ -32,10 +32,30 @@ const REGIONS = [
   '경기', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주',
 ];
 
+const INDUSTRY_CATEGORIES = [
+  '제조업', '도소매/유통업', '음식점/숙박업', 'IT/소프트웨어', '건설업', '운수/물류업',
+  '부동산업', '금융/보험업', '교육서비스업', '보건/의료/복지업', '농업/임업/어업',
+  '전문/과학/기술서비스업', '예술/스포츠/여가서비스업', '수리/개인서비스업', '전기/가스/수도업', '기타',
+];
+
 const CERTIFICATIONS = ['벤처기업', '이노비즈', '메인비즈'];
 const EXTRA_TAGS = ['여성기업', '장애인기업', '사회적기업', '재창업', '청년창업'];
 const TECH_DOMAINS = ['AI/소프트웨어', '바이오/헬스케어', '그린에너지/환경', '제조/하드웨어', '핀테크', '콘텐츠/미디어'];
 const INTEREST_CATEGORIES = ['경영', '기술', '수출', '창업', '내수', '인력', '금융'];
+const BUSINESS_TRAITS = ['B2B', 'B2C', 'B2G', '수출기업', '수출준비중', '채용 확대 예정'];
+const RND_CAPABILITY = ['기업부설연구소 보유', '전담부서 보유', '특허/지식재산권 보유'];
+const INVESTMENT_STAGES = ['없음', '시드투자 유치', '시리즈A 이상 투자유치'];
+
+// Cycled on the post-submit transition screen to keep the wait feeling alive.
+const LOADING_PHRASES = [
+  '사업 정보 확인 중...',
+  '맞춤 지원사업 매칭 중...',
+  '거의 다 됐어요...',
+];
+
+// The transition screen never shows for less than this, so a fast save
+// never flashes — see handleSubmit.
+const MIN_LOADING_MS = 2000;
 
 function ChipGroup({
   label,
@@ -82,21 +102,28 @@ export function OnboardingForm({ userId }: { userId: string }) {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [phraseIndex, setPhraseIndex] = useState(0);
 
   const [entityType, setEntityType] = useState<EntityType>('개인사업자');
   const [companyName, setCompanyName] = useState('');
   const [representativeName, setRepresentativeName] = useState('');
   const [businessNumber, setBusinessNumber] = useState('');
   const [businessStatus, setBusinessStatus] = useState<BusinessStatus | null>(null);
-  const [industryName, setIndustryName] = useState('');
+  const [businessTaxType, setBusinessTaxType] = useState<string | null>(null);
+  const [businessClosedAt, setBusinessClosedAt] = useState<string | null>(null);
+  const [industryName, setIndustryName] = useState(INDUSTRY_CATEGORIES[0]);
   const [techDomains, setTechDomains] = useState<string[]>([]);
   const [region, setRegion] = useState(REGIONS[0]);
+  const [businessDescription, setBusinessDescription] = useState('');
+  const [businessTraits, setBusinessTraits] = useState<string[]>([]);
   const [foundedAt, setFoundedAt] = useState('');
   const [employeeCount, setEmployeeCount] = useState(1);
   const [annualRevenue, setAnnualRevenue] = useState('');
   const [certifications, setCertifications] = useState<string[]>([]);
   const [extraTags, setExtraTags] = useState<string[]>([]);
   const [interestCategories, setInterestCategories] = useState<string[]>([]);
+  const [rndCapability, setRndCapability] = useState<string[]>([]);
+  const [investmentStage, setInvestmentStage] = useState(INVESTMENT_STAGES[0]);
   const [currentChallenges, setCurrentChallenges] = useState('');
 
   // 예비창업자 have no registration number yet, so they never see that step.
@@ -110,9 +137,22 @@ export function OnboardingForm({ userId }: { userId: string }) {
     setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   }
 
+  // Cycle the transition-screen phrases while a save is in flight.
+  useEffect(() => {
+    if (!saving) {
+      setPhraseIndex(0);
+      return;
+    }
+    const id = setInterval(() => {
+      setPhraseIndex((i) => (i + 1) % LOADING_PHRASES.length);
+    }, 700);
+    return () => clearInterval(id);
+  }, [saving]);
+
   async function handleSubmit() {
     setSaving(true);
     setError(null);
+    const startedAt = Date.now();
 
     const isRegistered = entityType !== '예비창업자';
     const supabase = createClient();
@@ -128,9 +168,13 @@ export function OnboardingForm({ userId }: { userId: string }) {
       business_verified: isRegistered && businessStatus != null && businessStatus !== 'not_found',
       business_status: isRegistered ? toDbBusinessStatus(businessStatus) : null,
       business_verified_at: isRegistered && businessStatus != null ? new Date().toISOString() : null,
+      business_tax_type: isRegistered ? businessTaxType : null,
+      business_closed_at: isRegistered ? businessClosedAt : null,
       industry_name: industryName || null,
       tech_domains: techDomains,
       region,
+      business_description: businessDescription || null,
+      business_traits: businessTraits,
       founded_at: foundedAt || null,
       age_months: getAgeMonths(foundedAt || null),
       employee_count: employeeCount,
@@ -138,19 +182,49 @@ export function OnboardingForm({ userId }: { userId: string }) {
       certifications,
       extra_tags: extraTags,
       interest_categories: interestCategories,
+      rnd_capability: rndCapability,
+      investment_stage: investmentStage,
       current_challenges: currentChallenges || null,
       onboarding_complete: true,
     });
 
-    setSaving(false);
-
     if (error) {
+      setSaving(false);
       setError(error.message);
       return;
     }
 
+    // Keep the transition screen up for at least MIN_LOADING_MS total so a
+    // fast save doesn't flash it — if the save itself took longer, this is a
+    // no-op and we move on immediately.
+    const remaining = MIN_LOADING_MS - (Date.now() - startedAt);
+    if (remaining > 0) {
+      await new Promise((resolve) => setTimeout(resolve, remaining));
+    }
+
     router.push('/dashboard');
     router.refresh();
+  }
+
+  if (saving) {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-lg bg-canvas px-md text-center"
+      >
+        <span
+          className="h-12 w-12 animate-spin rounded-full border-4 border-hairline border-t-ink"
+          aria-hidden="true"
+        />
+        <div className="flex flex-col gap-xs">
+          <p className="text-subtitle text-ink">{LOADING_PHRASES[phraseIndex]}</p>
+          <p className="text-body-sm text-steel">
+            정보를 취합해 최적의 지원사업을 찾고 있어요
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -210,7 +284,11 @@ export function OnboardingForm({ userId }: { userId: string }) {
             value={businessNumber}
             onChange={setBusinessNumber}
             initialStatus={businessStatus}
-            onVerified={setBusinessStatus}
+            onVerified={(result) => {
+              setBusinessStatus(result.status);
+              setBusinessTaxType(result.taxType);
+              setBusinessClosedAt(result.closedAt);
+            }}
           />
           <button
             type="button"
@@ -226,12 +304,11 @@ export function OnboardingForm({ userId }: { userId: string }) {
         <div className="flex flex-col gap-xl">
           <div className="flex flex-col gap-xs">
             <Label htmlFor="industryName">업종</Label>
-            <Input
-              id="industryName"
-              value={industryName}
-              onChange={(e) => setIndustryName(e.target.value)}
-              placeholder="예: IT 서비스업, 제조업, 카페 운영 등"
-            />
+            <Select id="industryName" value={industryName} onChange={(e) => setIndustryName(e.target.value)}>
+              {INDUSTRY_CATEGORIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </Select>
           </div>
           <div className="flex flex-col gap-xs">
             <Label htmlFor="region">지역 (시/도)</Label>
@@ -246,6 +323,26 @@ export function OnboardingForm({ userId }: { userId: string }) {
             options={TECH_DOMAINS}
             selected={techDomains}
             onToggle={(v) => toggleFrom(techDomains, setTechDomains, v)}
+          />
+        </div>
+      )}
+
+      {currentStep === '사업 아이템' && (
+        <div className="flex flex-col gap-xl">
+          <div className="flex flex-col gap-xs">
+            <Label htmlFor="businessDescription">사업 아이템 소개 (선택)</Label>
+            <Textarea
+              id="businessDescription"
+              value={businessDescription}
+              onChange={(e) => setBusinessDescription(e.target.value)}
+              placeholder="예: AI 기반 스마트팜 센서를 제조해 중소 농가에 판매하고 있어요. 기존 대비 30% 저렴한 가격이 강점이에요."
+            />
+          </div>
+          <ChipGroup
+            label="사업 특성 (해당 시, 선택)"
+            options={BUSINESS_TRAITS}
+            selected={businessTraits}
+            onToggle={(v) => toggleFrom(businessTraits, setBusinessTraits, v)}
           />
         </div>
       )}
@@ -309,6 +406,20 @@ export function OnboardingForm({ userId }: { userId: string }) {
             selected={interestCategories}
             onToggle={(v) => toggleFrom(interestCategories, setInterestCategories, v)}
           />
+          <ChipGroup
+            label="연구개발 역량 (해당 시, 선택)"
+            options={RND_CAPABILITY}
+            selected={rndCapability}
+            onToggle={(v) => toggleFrom(rndCapability, setRndCapability, v)}
+          />
+          <div className="flex flex-col gap-xs">
+            <Label htmlFor="investmentStage">투자유치 현황 (선택)</Label>
+            <Select id="investmentStage" value={investmentStage} onChange={(e) => setInvestmentStage(e.target.value)}>
+              {INVESTMENT_STAGES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </Select>
+          </div>
           <div className="flex flex-col gap-xs">
             <Label htmlFor="currentChallenges">지금 가장 필요한 지원은 무엇인가요? (선택)</Label>
             <Textarea
@@ -332,9 +443,7 @@ export function OnboardingForm({ userId }: { userId: string }) {
           이전
         </Button>
         {isLastStep ? (
-          <Button onClick={handleSubmit} disabled={saving}>
-            {saving ? '저장 중...' : '완료하고 매칭 결과 보기'}
-          </Button>
+          <Button onClick={handleSubmit}>완료하고 매칭 결과 보기</Button>
         ) : (
           <Button onClick={() => setStep((s) => s + 1)}>다음</Button>
         )}

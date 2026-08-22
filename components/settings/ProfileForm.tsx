@@ -20,9 +20,18 @@ const REGIONS = [
   '서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종',
   '경기', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주',
 ];
+const INDUSTRY_CATEGORIES = [
+  '제조업', '도소매/유통업', '음식점/숙박업', 'IT/소프트웨어', '건설업', '운수/물류업',
+  '부동산업', '금융/보험업', '교육서비스업', '보건/의료/복지업', '농업/임업/어업',
+  '전문/과학/기술서비스업', '예술/스포츠/여가서비스업', '수리/개인서비스업', '전기/가스/수도업', '기타',
+];
+
 const CERTIFICATIONS = ['벤처기업', '이노비즈', '메인비즈'];
 const TECH_DOMAINS = ['AI/소프트웨어', '바이오/헬스케어', '그린에너지/환경', '제조/하드웨어', '핀테크', '콘텐츠/미디어'];
 const INTEREST_CATEGORIES = ['경영', '기술', '수출', '창업', '내수', '인력', '금융'];
+const BUSINESS_TRAITS = ['B2B', 'B2C', 'B2G', '수출기업', '수출준비중', '채용 확대 예정'];
+const RND_CAPABILITY = ['기업부설연구소 보유', '전담부서 보유', '특허/지식재산권 보유'];
+const INVESTMENT_STAGES = ['없음', '시드투자 유치', '시리즈A 이상 투자유치'];
 
 function ChipToggle({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
   return (
@@ -47,15 +56,27 @@ export function ProfileForm({ profile }: { profile: Profile }) {
   const [representativeName, setRepresentativeName] = useState(profile.representative_name ?? '');
   const [businessNumber, setBusinessNumber] = useState(profile.business_number ?? '');
   const [businessStatus, setBusinessStatus] = useState<BusinessStatus | null>(profile.business_status);
+  const [businessTaxType, setBusinessTaxType] = useState<string | null>(profile.business_tax_type);
+  const [businessClosedAt, setBusinessClosedAt] = useState<string | null>(profile.business_closed_at);
   const [entityType, setEntityType] = useState<EntityType>(profile.entity_type);
-  const [industryName, setIndustryName] = useState(profile.industry_name ?? '');
+  const [industryName, setIndustryName] = useState(profile.industry_name ?? INDUSTRY_CATEGORIES[0]);
+  // Preserve an existing free-text value (from before this was a fixed dropdown) as a selectable
+  // option, instead of silently swapping it for the first category on load and overwriting it on save.
+  const industryOptions =
+    profile.industry_name && !INDUSTRY_CATEGORIES.includes(profile.industry_name)
+      ? [profile.industry_name, ...INDUSTRY_CATEGORIES]
+      : INDUSTRY_CATEGORIES;
   const [techDomains, setTechDomains] = useState<string[]>(profile.tech_domains);
   const [region, setRegion] = useState(profile.region);
+  const [businessDescription, setBusinessDescription] = useState(profile.business_description ?? '');
+  const [businessTraits, setBusinessTraits] = useState<string[]>(profile.business_traits);
   const [foundedAt, setFoundedAt] = useState(profile.founded_at ?? '');
   const [employeeCount, setEmployeeCount] = useState(String(profile.employee_count ?? ''));
   const [annualRevenue, setAnnualRevenue] = useState(String(profile.annual_revenue_krw ?? ''));
   const [certifications, setCertifications] = useState<string[]>(profile.certifications);
   const [interestCategories, setInterestCategories] = useState<string[]>(profile.interest_categories);
+  const [rndCapability, setRndCapability] = useState<string[]>(profile.rnd_capability);
+  const [investmentStage, setInvestmentStage] = useState(profile.investment_stage ?? INVESTMENT_STAGES[0]);
   const [currentChallenges, setCurrentChallenges] = useState(profile.current_challenges ?? '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -81,16 +102,22 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         business_number: businessNumber || null,
         business_verified: businessStatus != null && businessStatus !== 'not_found',
         business_status: toDbBusinessStatus(businessStatus),
+        business_tax_type: businessTaxType,
+        business_closed_at: businessClosedAt,
         entity_type: entityType,
         industry_name: industryName || null,
         tech_domains: techDomains,
         region,
+        business_description: businessDescription || null,
+        business_traits: businessTraits,
         founded_at: foundedAt || null,
         age_months: getAgeMonths(foundedAt || null),
         employee_count: employeeCount ? Number(employeeCount) : null,
         annual_revenue_krw: annualRevenue ? Number(annualRevenue) : null,
         certifications,
         interest_categories: interestCategories,
+        rnd_capability: rndCapability,
+        investment_stage: investmentStage,
         current_challenges: currentChallenges || null,
       })
       .eq('id', profile.id);
@@ -124,7 +151,11 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           value={businessNumber}
           onChange={setBusinessNumber}
           initialStatus={businessStatus}
-          onVerified={setBusinessStatus}
+          onVerified={(result) => {
+            setBusinessStatus(result.status);
+            setBusinessTaxType(result.taxType);
+            setBusinessClosedAt(result.closedAt);
+          }}
         />
         <div className="flex flex-col gap-xs">
           <Label htmlFor="entityType">사업 형태</Label>
@@ -136,7 +167,11 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         </div>
         <div className="flex flex-col gap-xs">
           <Label htmlFor="industryName">업종</Label>
-          <Input id="industryName" value={industryName} onChange={(e) => setIndustryName(e.target.value)} />
+          <Select id="industryName" value={industryName} onChange={(e) => setIndustryName(e.target.value)}>
+            {industryOptions.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </Select>
         </div>
         <div className="flex flex-col gap-sm">
           <Label>기술 분야 (해당 시, 선택)</Label>
@@ -147,6 +182,28 @@ export function ProfileForm({ profile }: { profile: Profile }) {
                 label={domain}
                 selected={techDomains.includes(domain)}
                 onClick={() => toggleFrom(techDomains, setTechDomains, domain)}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-col gap-xs">
+          <Label htmlFor="businessDescription">사업 아이템 소개 (선택)</Label>
+          <Textarea
+            id="businessDescription"
+            value={businessDescription}
+            onChange={(e) => setBusinessDescription(e.target.value)}
+            placeholder="예: AI 기반 스마트팜 센서를 제조해 중소 농가에 판매하고 있어요. 기존 대비 30% 저렴한 가격이 강점이에요."
+          />
+        </div>
+        <div className="flex flex-col gap-sm">
+          <Label>사업 특성 (해당 시, 선택)</Label>
+          <div className="flex flex-wrap gap-xs">
+            {BUSINESS_TRAITS.map((trait) => (
+              <ChipToggle
+                key={trait}
+                label={trait}
+                selected={businessTraits.includes(trait)}
+                onClick={() => toggleFrom(businessTraits, setBusinessTraits, trait)}
               />
             ))}
           </div>
@@ -212,6 +269,27 @@ export function ProfileForm({ profile }: { profile: Profile }) {
               />
             ))}
           </div>
+        </div>
+        <div className="flex flex-col gap-sm">
+          <Label>연구개발 역량 (해당 시, 선택)</Label>
+          <div className="flex flex-wrap gap-xs">
+            {RND_CAPABILITY.map((capability) => (
+              <ChipToggle
+                key={capability}
+                label={capability}
+                selected={rndCapability.includes(capability)}
+                onClick={() => toggleFrom(rndCapability, setRndCapability, capability)}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-col gap-xs">
+          <Label htmlFor="investmentStage">투자유치 현황 (선택)</Label>
+          <Select id="investmentStage" value={investmentStage} onChange={(e) => setInvestmentStage(e.target.value)}>
+            {INVESTMENT_STAGES.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </Select>
         </div>
         <div className="flex flex-col gap-xs">
           <Label htmlFor="currentChallenges">지금 가장 필요한 지원</Label>
