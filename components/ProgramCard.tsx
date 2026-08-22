@@ -33,8 +33,22 @@ export function ProgramCard({
   /** AI's title + 상세 내용 second opinion — a supplementary signal, see lib/ai/rateProgramMatch.ts */
   aiRating?: ProgramMatchRating;
 }) {
+  const hasHighAiRating = aiRating != null && aiRating.matchRate > 70;
+
   return (
-    <Card className="flex flex-col hover:shadow-subtle">
+    <Card
+      className={cn(
+        'relative flex flex-col',
+        hasHighAiRating ? 'shadow-glow' : 'transition-shadow hover:shadow-subtle'
+      )}
+    >
+      {aiRating != null && (
+        <div className="absolute -top-3 left-1/2 z-10 -translate-x-1/2">
+          <Badge variant="default" title={aiRating.reason || undefined} className="shadow-card">
+            <Sparkles className="h-3 w-3" aria-hidden="true" /> AI 매칭도 {aiRating.matchRate}%
+          </Badge>
+        </div>
+      )}
       <CardHeader>
         <div className="flex items-start justify-between gap-xs">
           <div className="flex flex-wrap gap-xs">
@@ -44,11 +58,6 @@ export function ProgramCard({
             <DeadlineBadge deadlineEnd={program.deadline_end} />
             {matchScorePercent != null && (
               <Badge variant="success">매칭도 {matchScorePercent}%</Badge>
-            )}
-            {aiRating != null && (
-              <Badge variant="default" title={aiRating.reason || undefined}>
-                <Sparkles className="h-3 w-3" aria-hidden="true" /> AI 매칭도 {aiRating.matchRate}%
-              </Badge>
             )}
           </div>
           <button

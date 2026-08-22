@@ -109,6 +109,9 @@ const config: Config = {
         card: "0px 4px 6px 0px rgba(0, 0, 0, 0.08)",
         atmospheric: "0px 0px 22px 0px rgba(0, 0, 0, 0.08)",
         modal: "0px 12px 16px -4px rgba(36, 36, 36, 0.08)",
+        // A thin brand-blue ring plus a soft outer bloom — used to highlight cards with a
+        // strong AI 매칭도 rating (see components/ProgramCard.tsx).
+        glow: "0 0 0 1.5px rgba(59, 130, 246, 0.55), 0 0 18px 2px rgba(59, 130, 246, 0.35)",
       },
     },
   },
