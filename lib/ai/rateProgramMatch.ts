@@ -43,7 +43,7 @@ export async function rateProgramMatches(
       const description = p.description
         ? p.description.slice(0, MAX_DESCRIPTION_CHARS)
         : '(상세 내용 없음)';
-      return `${i}. (id: ${p.id})\n제목: ${p.title}\n상세 내용: ${description}`;
+      return `${i}. 제목: ${p.title}\n상세 내용: ${description}`;
     })
     .join('\n\n');
 
@@ -55,20 +55,27 @@ export async function rateProgramMatches(
 회사 정보:
 ${profileSummary}
 
-지원사업 목록:
+지원사업 목록 (번호로 구분):
 ${programList}
 
-JSON 배열로만 응답하세요. 각 항목: {"id": "위 목록의 id 그대로", "matchRate": 0~100 사이 정수 (제목과 상세 내용으로 판단한 적합도), "reason": "한 문장, 15단어 이내로 판단 근거"}
+JSON 배열로만 응답하세요. 각 항목: {"index": 위 목록의 번호(정수, 그대로), "matchRate": 0~100 사이 정수 (제목과 상세 내용으로 판단한 적합도), "reason": "한 문장, 15단어 이내로 판단 근거"}
 JSON 외 다른 텍스트는 절대 포함하지 마세요.`,
   });
 
   try {
-    const parsed = parseJsonResponse<{ id?: string; matchRate?: number; reason?: string }[]>(text);
+    const parsed = parseJsonResponse<{ index?: number; matchRate?: number; reason?: string }[]>(text);
     const result: Record<string, ProgramMatchRating> = {};
 
     for (const entry of parsed) {
-      if (!entry.id || typeof entry.matchRate !== 'number') continue;
-      result[entry.id] = {
+      // Correlate by list position rather than having the model echo back a 36-character UUID —
+      // in practice the model occasionally garbles a UUID slightly when reproducing it, which
+      // would otherwise both drop that program's rating and (before this used a validated real
+      // id) corrupt a foreign-key insert. A small integer index is far less error-prone to copy.
+      if (typeof entry.index !== 'number' || typeof entry.matchRate !== 'number') continue;
+      const program = programs[entry.index];
+      if (!program) continue;
+
+      result[program.id] = {
         matchRate: Math.max(0, Math.min(100, Math.round(entry.matchRate))),
         reason: entry.reason ?? '',
       };
