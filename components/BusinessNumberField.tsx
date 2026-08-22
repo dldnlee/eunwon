@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { BusinessStatus } from '@/lib/verification/business';
+import type { BusinessStatus, BusinessVerification } from '@/lib/verification/business';
 
 type VerifyState = 'idle' | 'checking' | BusinessStatus | 'error';
 
@@ -24,13 +24,13 @@ export function BusinessNumberField({
   onChange: (value: string) => void;
   initialStatus?: BusinessStatus | null;
   /**
-   * Called with the resolved status once a verify call succeeds. The API
+   * Called with the full verify result once a verify call succeeds. The API
    * route also writes straight to the caller's `profiles` row, but during
    * onboarding that row may not exist yet (it's created by the final
    * upsert), so callers that need the result to survive should carry it in
    * their own state and include it in whatever they save next.
    */
-  onVerified?: (status: BusinessStatus) => void;
+  onVerified?: (result: BusinessVerification) => void;
 }) {
   const [state, setState] = useState<VerifyState>(initialStatus ?? 'idle');
 
@@ -45,7 +45,7 @@ export function BusinessNumberField({
       const data = await res.json();
       if (res.ok) {
         setState(data.status);
-        onVerified?.(data.status);
+        onVerified?.(data);
       } else {
         setState('error');
       }

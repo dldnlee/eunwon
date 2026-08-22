@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const status = await checkBusinessStatus(parsed.data.businessNumber);
+    const { status, taxType, closedAt } = await checkBusinessStatus(parsed.data.businessNumber);
 
     await supabase
       .from('profiles')
@@ -31,10 +31,12 @@ export async function POST(request: Request) {
         business_verified: status !== 'not_found',
         business_status: toDbBusinessStatus(status),
         business_verified_at: new Date().toISOString(),
+        business_tax_type: taxType,
+        business_closed_at: closedAt,
       })
       .eq('id', user.id);
 
-    return NextResponse.json({ status });
+    return NextResponse.json({ status, taxType, closedAt });
   } catch (err) {
     console.error('checkBusinessStatus failed:', err);
     return NextResponse.json({ error: '사업자 확인에 실패했습니다. 잠시 후 다시 시도해주세요.' }, { status: 500 });

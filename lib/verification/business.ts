@@ -18,10 +18,18 @@ export type BusinessStatus = 'active' | 'suspended' | 'closed' | 'not_found';
 interface NtsStatusItem {
   b_no: string;
   b_stt_cd?: string;
+  tax_type?: string;
+  end_dt?: string;
 }
 
 interface NtsStatusResponse {
   data?: NtsStatusItem[];
+}
+
+export interface BusinessVerification {
+  status: BusinessStatus;
+  taxType: string | null;   // 과세유형, e.g. '부가가치세 일반과세자' — raw NTS text
+  closedAt: string | null;  // 폐업일자 (yyyy-mm-dd), only set when status === 'closed'
 }
 
 const STATUS_CODE_MAP: Record<string, BusinessStatus> = {
@@ -44,15 +52,21 @@ export function toDbBusinessStatus(status: BusinessStatus | null): 'active' | 's
   return status === 'not_found' || status == null ? null : status;
 }
 
+/** NTS returns 폐업일자 as bare 'yyyymmdd' — reformat for a Postgres `date` column. */
+function formatNtsDate(raw: string | undefined): string | null {
+  if (!raw || raw.length !== 8) return null;
+  return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
+}
+
 /**
  * Looks up a single 사업자등록번호's status with the NTS API.
- * Returns 'not_found' both when NTS has no record and on any request failure —
- * callers should treat this as "couldn't confirm," not as a hard rejection,
- * since newly-registered businesses can take 1-2 days to appear.
+ * Returns status 'not_found' both when NTS has no record and on any request
+ * failure — callers should treat this as "couldn't confirm," not as a hard
+ * rejection, since newly-registered businesses can take 1-2 days to appear.
  */
-export async function checkBusinessStatus(businessNumber: string): Promise<BusinessStatus> {
+export async function checkBusinessStatus(businessNumber: string): Promise<BusinessVerification> {
   const bNo = normalizeBusinessNumber(businessNumber);
-  if (bNo.length !== 10) return 'not_found';
+  if (bNo.length !== 10) return { status: 'not_found', taxType: null, closedAt: null };
 
   const res = await fetch(`${STATUS_URL}?serviceKey=${process.env.NTS_API_KEY}`, {
     method: 'POST',
@@ -64,7 +78,12 @@ export async function checkBusinessStatus(businessNumber: string): Promise<Busin
 
   const body = (await res.json()) as NtsStatusResponse;
   const item = body.data?.[0];
-  if (!item) return 'not_found';
+  if (!item) return { status: 'not_found', taxType: null, closedAt: null };
 
-  return STATUS_CODE_MAP[item.b_stt_cd ?? ''] ?? 'not_found';
+  const status = STATUS_CODE_MAP[item.b_stt_cd ?? ''] ?? 'not_found';
+  return {
+    status,
+    taxType: item.tax_type ?? null,
+    closedAt: status === 'closed' ? formatNtsDate(item.end_dt) : null,
+  };
 }
