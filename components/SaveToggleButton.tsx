@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Bookmark } from 'lucide-react';
@@ -14,6 +15,7 @@ export function SaveToggleButton({
   programId: string;
   initialSaved: boolean;
 }) {
+  const router = useRouter();
   const [saved, setSaved] = useState(initialSaved);
   const [loading, setLoading] = useState(false);
 
@@ -29,6 +31,9 @@ export function SaveToggleButton({
 
     setSaved(!saved);
     setLoading(false);
+    // Bust Next's client-side Router Cache so 저장한 사업 (and the dashboard) re-fetch from the
+    // DB on the next visit instead of serving a payload cached before this mutation.
+    router.refresh();
   }
 
   return (

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
@@ -37,6 +38,7 @@ export function SavedProgramRow({
   initialReceivedAt: string;
   initialAmountKrw: string;
 }) {
+  const router = useRouter();
   const [status, setStatus] = useState<SavedStatus>(initialStatus);
   const [notes, setNotes] = useState(initialNotes);
   const [outcome, setOutcome] = useState(initialOutcome);
@@ -72,6 +74,9 @@ export function SavedProgramRow({
     setRemoved(true);
     const supabase = createClient();
     await supabase.from('saved_programs').delete().eq('id', savedId);
+    // Bust Next's client-side Router Cache so the dashboard's bookmark state and 저장한 사업
+    // count reflect this removal on the next visit instead of a payload cached before it.
+    router.refresh();
   }
 
   if (removed) return null;

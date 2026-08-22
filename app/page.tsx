@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -96,23 +97,37 @@ export default async function LandingPage() {
 
       {/* Hero */}
       <section className="relative">
-        <div className="relative mx-auto max-w-4xl px-xl py-section-lg text-center sm:py-hero">
-          <Badge className={`mb-md border ${GLASS} text-brand-blue-deep`}>
-            Upstage Solar Pro 기반 AI 매칭
-          </Badge>
-          <h1 className="text-heading-md text-balance text-ink sm:text-heading-lg lg:text-display-lg">
-            놓치고 있는 정부지원사업을
-            <br />
-            찾아드립니다
-          </h1>
-          <p className="mx-auto mt-lg max-w-2xl text-body-md text-steel sm:text-subtitle">
-            내 사업 정보만 입력하면, 수백 개의 정부지원사업 중 지금 신청할 수 있는 것만
-            골라드려요. 소상공인, 스타트업, 중소기업을 위한 가장 쉬운 지원사업 매칭 서비스.
-          </p>
-          <div className="mt-xl flex justify-center gap-sm">
-            <Link href="/signup">
-              <Button size="lg">내 사업에 맞는 지원사업 찾기</Button>
-            </Link>
+        <div className="relative mx-auto grid max-w-6xl items-center gap-xxl px-xl py-section-lg sm:py-hero md:grid-cols-[minmax(0,1fr)_320px] lg:grid-cols-[minmax(0,1fr)_400px]">
+          <div className="text-center md:text-left">
+            <Badge className={`mb-md border ${GLASS} text-brand-blue-deep`}>
+              Upstage Solar Pro 기반 AI 매칭
+            </Badge>
+            <h1 className="text-heading-md text-balance text-ink sm:text-heading-lg lg:text-display-lg">
+              놓치고 있는 정부지원사업을
+              <br />
+              찾아드립니다
+            </h1>
+            <p className="mx-auto mt-lg max-w-2xl text-body-md text-steel sm:text-subtitle md:mx-0">
+              내 사업 정보만 입력하면, 수백 개의 정부지원사업 중 지금 신청할 수 있는 것만
+              골라드려요. 소상공인, 스타트업, 중소기업을 위한 가장 쉬운 지원사업 매칭 서비스.
+            </p>
+            <div className="mt-xl flex justify-center gap-sm md:justify-start">
+              <Link href="/signup">
+                <Button size="lg">내 사업에 맞는 지원사업 찾기</Button>
+              </Link>
+            </div>
+          </div>
+          <div className="relative mx-auto flex h-64 w-full max-w-80 items-end justify-center sm:h-72 md:h-80" aria-label="은원 AI 매칭 안내 마스코트">
+            <div className={`absolute inset-x-md bottom-0 h-48 rounded-hero border ${GLASS}`} aria-hidden="true" />
+            <Image
+              src="/mascot/delighted.png"
+              alt="맞춤 지원사업을 찾아 기뻐하는 은원 마스코트"
+              width={420}
+              height={420}
+              priority
+              sizes="(max-width: 767px) 280px, 400px"
+              className="relative z-10 h-full w-auto object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.10)]"
+            />
           </div>
         </div>
       </section>

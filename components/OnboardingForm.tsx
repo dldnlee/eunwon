@@ -243,10 +243,10 @@ export function OnboardingForm({ userId }: { userId: string }) {
         aria-live="polite"
         className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-lg bg-canvas px-md text-center animate-fade-in-up"
       >
-        <span
-          className="h-12 w-12 animate-spin rounded-full border-4 border-hairline border-t-ink"
-          aria-hidden="true"
-        />
+        <div className="relative">
+          <OnboardingMascot pose="thinking" animate={false} className="h-28 w-28" />
+          <span className="absolute -bottom-1 left-1/2 h-2 w-16 -translate-x-1/2 animate-pulse rounded-full bg-hairline" aria-hidden="true" />
+        </div>
         <div className="flex flex-col gap-xs">
           <p key={phraseIndex} className="text-subtitle text-ink animate-fade-in-up">
             {LOADING_PHRASES[phraseIndex]}
@@ -263,7 +263,7 @@ export function OnboardingForm({ userId }: { userId: string }) {
     <div className="mx-auto flex w-full max-w-lg flex-col gap-xl">
       <div className="flex flex-col gap-md">
         <div className="flex items-start gap-sm">
-          <OnboardingMascot pose="point" className="h-11 w-11" />
+          <OnboardingMascot pose="point" animate={false} className="h-14 w-14" />
           <div
             key={currentStep}
             className="relative flex-1 animate-fade-in-up rounded-lg border border-hairline bg-surface px-md py-xs text-body-sm text-charcoal before:absolute before:left-[-6px] before:top-3 before:h-3 before:w-3 before:rotate-45 before:border-b before:border-l before:border-hairline before:bg-surface"

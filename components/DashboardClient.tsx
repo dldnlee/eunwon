@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { ProgramCard } from '@/components/ProgramCard';
 import { EventCard } from '@/components/EventCard';
@@ -171,6 +172,7 @@ export function DashboardClient({
   isPro: boolean;
   freeLimit: number;
 }) {
+  const router = useRouter();
   const [saved, setSaved] = useState<Set<string>>(new Set(savedProgramIds));
   const [activeTab, setActiveTab] = useState<TabValue>('전체');
   const [category, setCategory] = useState('전체');
@@ -330,6 +332,10 @@ export function DashboardClient({
       setSaved(next);
       await supabase.from('saved_programs').insert({ user_id: userId, program_id: programId });
     }
+
+    // Bust Next's client-side Router Cache so a subsequent visit to 저장한 사업 (or back to this
+    // page) re-fetches from the DB instead of serving whatever was cached before this mutation.
+    router.refresh();
   }
 
   const tabItems: PillTabItem[] = [

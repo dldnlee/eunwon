@@ -37,3 +37,6 @@ next-env.d.ts
 
 # supabase CLI local cache
 supabase/.temp/
+
+# Codex local connector configuration may contain access tokens
+.codex/config.toml
