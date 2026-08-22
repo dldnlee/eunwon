@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Logo } from '@/components/Logo';
+import { KakaoLoginButton } from '@/components/KakaoLoginButton';
 import { Check, X } from 'lucide-react';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -256,6 +257,12 @@ export default function SignupPage() {
                   {loading ? '가입 중...' : '회원가입'}
                 </Button>
               </form>
+              <div className="my-lg flex items-center gap-sm text-caption text-stone">
+                <span className="h-px flex-1 bg-hairline" />
+                또는
+                <span className="h-px flex-1 bg-hairline" />
+              </div>
+              <KakaoLoginButton />
               <p className="mt-lg text-center text-body-sm text-steel">
                 이미 계정이 있으신가요?{' '}
                 <Link href="/login" className="font-medium text-brand-blue-deep hover:underline">

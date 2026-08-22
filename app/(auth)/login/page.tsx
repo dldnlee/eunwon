@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Logo } from '@/components/Logo';
+import { KakaoLoginButton } from '@/components/KakaoLoginButton';
 
 function LoginForm() {
   const router = useRouter();
@@ -80,6 +81,12 @@ function LoginForm() {
             {loading ? '로그인 중...' : '로그인'}
           </Button>
         </form>
+        <div className="my-lg flex items-center gap-sm text-caption text-stone">
+          <span className="h-px flex-1 bg-hairline" />
+          또는
+          <span className="h-px flex-1 bg-hairline" />
+        </div>
+        <KakaoLoginButton nextPath={searchParams.get('next') ?? undefined} />
         <p className="mt-lg text-center text-body-sm text-steel">
           계정이 없으신가요?{' '}
           <Link href="/signup" className="font-medium text-brand-blue-deep hover:underline">
