@@ -157,7 +157,7 @@ export function OnboardingForm({ userId }: { userId: string }) {
     }
     const id = setInterval(() => {
       setPhraseIndex((i) => (i + 1) % LOADING_PHRASES.length);
-    }, 700);
+    }, 900);
     return () => clearInterval(id);
   }, [saving]);
 
@@ -241,14 +241,16 @@ export function OnboardingForm({ userId }: { userId: string }) {
       <div
         role="status"
         aria-live="polite"
-        className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-lg bg-canvas px-md text-center"
+        className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-lg bg-canvas px-md text-center animate-fade-in-up"
       >
         <span
           className="h-12 w-12 animate-spin rounded-full border-4 border-hairline border-t-ink"
           aria-hidden="true"
         />
         <div className="flex flex-col gap-xs">
-          <p className="text-subtitle text-ink">{LOADING_PHRASES[phraseIndex]}</p>
+          <p key={phraseIndex} className="text-subtitle text-ink animate-fade-in-up">
+            {LOADING_PHRASES[phraseIndex]}
+          </p>
           <p className="text-body-sm text-steel">
             정보를 취합해 최적의 지원사업을 찾고 있어요
           </p>

@@ -15,7 +15,7 @@ import { TOSS_ENABLED } from '@/lib/payments';
 import { matchPercent, getProgramBucket, type ProgramBucket } from '@/lib/matching';
 import { categoryLabel, daysUntil } from '@/lib/utils';
 import type { ProgramMatchRating } from '@/lib/ai/rateProgramMatch';
-import { SearchX, CalendarClock, Info } from 'lucide-react';
+import { SearchX, CalendarClock, Info, Sparkles } from 'lucide-react';
 import type { Program, Profile, Event } from '@/lib/types';
 
 // Smaller than before now that each request also sends descriptions (not just titles) server-side
@@ -43,8 +43,41 @@ const MATCH_TOOLTIP =
 const AI_MATCH_TOOLTIP =
   'AI 매칭도: AI가 지원사업의 "제목과 상세 내용"을 보고 판단한 참고용 점수예요. 매칭도(자격 조건 기반)와 달리 AI의 해석에 따라 달라질 수 있는 보조 지표예요.';
 
+type SortBy = 'ai' | 'match' | 'deadline';
+
+// AI 매칭도 leads by default since it's the more discriminating signal once it's available —
+// only offered to Pro users, who are the only ones with AI ratings at all.
+const SORT_OPTIONS: { value: SortBy; label: string; proOnly?: boolean }[] = [
+  { value: 'ai', label: 'AI 매칭도 높은순', proOnly: true },
+  { value: 'match', label: '매칭도 높은순' },
+  { value: 'deadline', label: '마감임박순' },
+];
+
 function sortByMatch(programs: Program[], profile: Profile): Program[] {
   return [...programs].sort((a, b) => matchPercent(b, profile) - matchPercent(a, profile));
+}
+
+function sortPrograms(
+  programs: Program[],
+  sortBy: SortBy,
+  profile: Profile,
+  aiRatings: Record<string, ProgramMatchRating>
+): Program[] {
+  const sorted = [...programs];
+  if (sortBy === 'ai') {
+    return sorted.sort((a, b) => (aiRatings[b.id]?.matchRate ?? -1) - (aiRatings[a.id]?.matchRate ?? -1));
+  }
+  if (sortBy === 'deadline') {
+    return sorted.sort((a, b) => {
+      const aDays = daysUntil(a.deadline_end);
+      const bDays = daysUntil(b.deadline_end);
+      if (aDays === null && bDays === null) return 0;
+      if (aDays === null) return 1; // no deadline sorts last
+      if (bDays === null) return -1;
+      return aDays - bDays;
+    });
+  }
+  return sortByMatch(sorted, profile);
 }
 
 function ProgramEmptyState({
@@ -79,6 +112,48 @@ const BUCKET_EMPTY_COPY: Record<Exclude<TabValue, '전체' | '행사'>, string> 
   대출: '아직 조건에 맞는 대출·보증 지원사업이 없어요. 새로운 정책자금이 열리면 이곳에 표시됩니다.',
 };
 
+// Cycled while the initial, blocking AI-매칭도 pass runs right after onboarding — see the
+// initialRatingsReady gate below.
+const INITIAL_RATINGS_LOADING_PHRASES = [
+  'AI가 매칭된 지원사업을 살펴보고 있어요...',
+  '지원사업별로 AI 매칭도를 계산하는 중...',
+  '가장 잘 맞는 사업부터 정리하고 있어요...',
+];
+
+/** Full-width loading state shown in place of the tabs/grid until every initial program's
+ *  AI 매칭도 has resolved, so the dashboard never flashes cards before the AI 매칭도 badges land —
+ *  the phrase key-swap replays animate-fade-in-up on each change for a smooth crossfade rather
+ *  than an abrupt text swap. */
+function InitialRatingsLoading() {
+  const [phraseIndex, setPhraseIndex] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setPhraseIndex((i) => (i + 1) % INITIAL_RATINGS_LOADING_PHRASES.length);
+    }, 900);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex min-h-[40vh] flex-col items-center justify-center gap-lg text-center animate-fade-in-up"
+    >
+      <span
+        className="h-12 w-12 animate-spin rounded-full border-4 border-hairline border-t-ink"
+        aria-hidden="true"
+      />
+      <div className="flex flex-col gap-xs">
+        <p key={phraseIndex} className="text-subtitle text-ink animate-fade-in-up">
+          {INITIAL_RATINGS_LOADING_PHRASES[phraseIndex]}
+        </p>
+        <p className="text-body-sm text-steel">AI 매칭도까지 준비되면 결과를 보여드릴게요</p>
+      </div>
+    </div>
+  );
+}
+
 export function DashboardClient({
   userId,
   profile,
@@ -102,10 +177,19 @@ export function DashboardClient({
   const [region, setRegion] = useState('전체');
   const [minMatchPercent, setMinMatchPercent] = useState(0);
   const [minAiMatchPercent, setMinAiMatchPercent] = useState(0);
+  // Defaults to AI 매칭도 for Pro users — the only ones who have it at all; free users default
+  // to plain 매칭도 since they'd otherwise land on an option that never actually sorts anything.
+  const [sortBy, setSortBy] = useState<SortBy>(isPro ? 'ai' : 'match');
   const [aiRatings, setAiRatings] = useState<Record<string, ProgramMatchRating>>({});
+  // Gates the tabs/grid so cards never render before every initial program's AI 매칭도 has
+  // resolved — true immediately for non-Pro users, who never see AI ratings at all. Repeat
+  // visits resolve near-instantly since the API route caches ratings in the DB, so this mostly
+  // matters right after onboarding, on the very first load.
+  const [initialRatingsReady, setInitialRatingsReady] = useState(!isPro);
   // Tracks ids currently in flight so a re-render mid-request doesn't fire a duplicate batch —
   // separate from aiRatings itself since "requested but not back yet" isn't a rating.
   const requestedIds = useRef<Set<string>>(new Set());
+  const hasFetchedAllRef = useRef(false);
 
   const bucketPrograms = useMemo(() => {
     const map: Record<ProgramBucket, Program[]> = { program: [], contest: [], loan: [] };
@@ -151,9 +235,12 @@ export function DashboardClient({
   // comes in, if it qualifies. See the "AI가 분석 중" note near the filter for why the list can
   // grow after the page has already rendered.
   const filteredPrograms = useMemo(() => {
-    if (minAiMatchPercent === 0) return matchFilteredPrograms;
-    return matchFilteredPrograms.filter((p) => (aiRatings[p.id]?.matchRate ?? -1) >= minAiMatchPercent);
-  }, [matchFilteredPrograms, minAiMatchPercent, aiRatings]);
+    const base =
+      minAiMatchPercent === 0
+        ? matchFilteredPrograms
+        : matchFilteredPrograms.filter((p) => (aiRatings[p.id]?.matchRate ?? -1) >= minAiMatchPercent);
+    return sortPrograms(base, sortBy, profile, aiRatings);
+  }, [matchFilteredPrograms, minAiMatchPercent, aiRatings, sortBy, profile]);
 
   const visiblePrograms = isPro ? filteredPrograms : filteredPrograms.slice(0, freeLimit);
   const hiddenCount = isPro ? 0 : Math.max(0, filteredPrograms.length - freeLimit);
@@ -161,36 +248,56 @@ export function DashboardClient({
   const aiFilterPending =
     minAiMatchPercent > 0 && matchFilteredPrograms.some((p) => !(p.id in aiRatings));
 
-  // AI's title + 상세 내용 second opinion (lib/ai/rateProgramMatch.ts) — Pro-only, runs
-  // automatically as cards come into view rather than behind a button. Drawn from
-  // matchFilteredPrograms (every program the rule-based filters allow, regardless of the AI
-  // filter — see above), batched, and only for ids not already rated or already in flight —
-  // switching tabs or paging never re-asks for a program this session has already gotten a
-  // rating for. Only ids are sent — the route re-fetches title/description server-side.
+  // AI's title + 상세 내용 second opinion (lib/ai/rateProgramMatch.ts) — Pro-only. Fetched once,
+  // in parallel batches, across every initial program (not just the active tab) as soon as the
+  // dashboard mounts, so initialRatingsReady can flip once every rating is back and the tabs/grid
+  // (and the top-AI-매칭도 section below) never render ahead of the AI 매칭도 badges. Only ids are
+  // sent — the route re-fetches title/description server-side and caches results in the DB, so
+  // repeat visits resolve this almost instantly from cache.
   useEffect(() => {
     if (!isPro) return;
+    if (hasFetchedAllRef.current) return;
+    hasFetchedAllRef.current = true;
 
-    const toRequest = matchFilteredPrograms
-      .filter((p) => !(p.id in aiRatings) && !requestedIds.current.has(p.id))
-      .slice(0, AI_RATING_BATCH_SIZE);
+    const allIds = initialPrograms.map((p) => p.id);
+    allIds.forEach((id) => requestedIds.current.add(id));
 
-    if (toRequest.length === 0) return;
+    const chunks: string[][] = [];
+    for (let i = 0; i < allIds.length; i += AI_RATING_BATCH_SIZE) {
+      chunks.push(allIds.slice(i, i + AI_RATING_BATCH_SIZE));
+    }
 
-    toRequest.forEach((p) => requestedIds.current.add(p.id));
+    Promise.all(
+      chunks.map((chunk) =>
+        fetch('/api/ai/rate-program-match', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ programIds: chunk }),
+        })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data?.ratings) setAiRatings((prev) => ({ ...prev, ...data.ratings }));
+          })
+          .catch(() => {
+            // Non-critical enhancement — the rule-based matchPercent badge already covers fit.
+          })
+      )
+    ).finally(() => setInitialRatingsReady(true));
+    // Deliberately a one-time, mount-only fetch across the initial program set — re-running on
+    // prop changes would re-request everything and defeat the "just once" guard above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    fetch('/api/ai/rate-program-match', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ programIds: toRequest.map((p) => p.id) }),
-    })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.ratings) setAiRatings((prev) => ({ ...prev, ...data.ratings }));
-      })
-      .catch(() => {
-        // Non-critical enhancement — the rule-based matchPercent badge already covers fit.
-      });
-  }, [isPro, matchFilteredPrograms, aiRatings]);
+  // Up to 3 programs with the highest AI 매칭도 across the whole matched set (not just the
+  // active tab) — only ones an AI rating actually came back for, so a program that failed to
+  // rate never wins a slot by default. Deliberately not excluded from the regular grid below.
+  const topAiRecommendations = useMemo(() => {
+    if (!isPro) return [];
+    return initialPrograms
+      .filter((p) => aiRatings[p.id] != null)
+      .sort((a, b) => aiRatings[b.id].matchRate - aiRatings[a.id].matchRate)
+      .slice(0, 3);
+  }, [isPro, initialPrograms, aiRatings]);
 
   const deadlineSoonCount = initialPrograms.filter((p) => {
     const days = daysUntil(p.deadline_end);
@@ -246,164 +353,207 @@ export function DashboardClient({
         deadlineSoonCount={deadlineSoonCount}
       />
 
-      <PillTabs items={tabItems} value={activeTab} onChange={selectTab} className="mb-lg" />
-
-      <div className="grid grid-cols-1 gap-xl lg:grid-cols-[220px_1fr]">
-        <aside className="flex flex-col gap-lg">
-          {showFilters ? (
-            <>
-              <div className="flex flex-col gap-xs">
-                <Label htmlFor="category-filter">카테고리</Label>
-                <Select id="category-filter" value={category} onChange={(e) => setCategory(e.target.value)}>
-                  {categories.map((c) => (
-                    <option key={c} value={c}>{c === '전체' ? c : categoryLabel(c)}</option>
-                  ))}
-                </Select>
+      {isPro && !initialRatingsReady ? (
+        <InitialRatingsLoading />
+      ) : (
+        <div className="animate-fade-in-up-slow">
+          {topAiRecommendations.length > 0 && (
+            <section className="mb-xl">
+              <div className="mb-md flex items-center gap-xs">
+                <Sparkles className="h-4 w-4 text-brand-blue-deep" aria-hidden="true" />
+                <h2 className="text-card-title text-ink">AI가 가장 추천하는 지원사업</h2>
               </div>
-              <div className="flex flex-col gap-xs">
-                <Label htmlFor="region-filter">지역</Label>
-                <Select id="region-filter" value={region} onChange={(e) => setRegion(e.target.value)}>
-                  {regions.map((r) => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </Select>
+              <div className="grid gap-md sm:grid-cols-2 lg:grid-cols-3">
+                {topAiRecommendations.map((program) => (
+                  <ProgramCard
+                    key={program.id}
+                    program={program}
+                    saved={saved.has(program.id)}
+                    onToggleSave={toggleSave}
+                    showExplainButton={isPro}
+                    matchScorePercent={matchPercent(program, profile)}
+                    aiRating={aiRatings[program.id]}
+                  />
+                ))}
               </div>
-              <div className="flex flex-col gap-xs">
-                <div className="flex items-center gap-xxs">
-                  <Label htmlFor="match-filter">매칭도</Label>
-                  <span className="inline-flex" title={MATCH_TOOLTIP} aria-label={MATCH_TOOLTIP}>
-                    <Info className="h-3.5 w-3.5 shrink-0 text-stone" aria-hidden="true" />
-                  </span>
-                </div>
-                <Select
-                  id="match-filter"
-                  value={minMatchPercent}
-                  onChange={(e) => setMinMatchPercent(Number(e.target.value))}
-                >
-                  {MATCH_RATE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </Select>
-              </div>
-              {isPro && (
-                <div className="flex flex-col gap-xs">
-                  <div className="flex items-center gap-xxs">
-                    <Label htmlFor="ai-match-filter">AI 매칭도</Label>
-                    <span className="inline-flex" title={AI_MATCH_TOOLTIP} aria-label={AI_MATCH_TOOLTIP}>
-                      <Info className="h-3.5 w-3.5 shrink-0 text-stone" aria-hidden="true" />
-                    </span>
-                  </div>
-                  <Select
-                    id="ai-match-filter"
-                    value={minAiMatchPercent}
-                    onChange={(e) => setMinAiMatchPercent(Number(e.target.value))}
-                  >
-                    {MATCH_RATE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </Select>
-                  {aiFilterPending && (
-                    <p className="text-caption text-stone">
-                      AI가 아직 분석 중인 항목이 있어요. 완료되는 대로 결과가 추가돼요.
-                    </p>
-                  )}
-                </div>
-              )}
-            </>
-          ) : (
-            <p className="rounded-lg border border-dashed border-hairline p-md text-body-sm text-steel">
-              행사에는 카테고리·지역·매칭도·AI 매칭도 필터가 적용되지 않아요.
-            </p>
+            </section>
           )}
-        </aside>
 
-        <div>
-          {activeTab === '행사' ? (
-            <>
-              <div className="mb-md flex items-center justify-between">
-                <h2 className="text-card-title text-ink">다가오는 행사 {initialEvents.length}건</h2>
-              </div>
-              {initialEvents.length === 0 ? (
-                <div className="flex flex-col items-center gap-sm rounded-lg border border-dashed border-hairline p-xxl text-center">
-                  <CalendarClock className="h-8 w-8 text-stone" aria-hidden="true" />
-                  <p className="text-body-sm text-steel">
-                    아직 등록된 행사가 없어요. 새로운 전시회·세미나·교육 정보가 올라오면 이곳에 표시됩니다.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid gap-md sm:grid-cols-2">
-                  {initialEvents.map((event) => (
-                    <EventCard key={event.id} event={event} />
-                  ))}
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <div className="mb-md flex items-center justify-between">
-                <h2 className="text-card-title text-ink">
-                  매칭된 {headingLabel} {filteredPrograms.length}건
-                </h2>
-                {!isPro && <Badge>무료 플랜 — {freeLimit}건만 표시 중</Badge>}
-              </div>
+          <PillTabs items={tabItems} value={activeTab} onChange={selectTab} className="mb-lg" />
 
-              {visiblePrograms.length === 0 ? (
-                <ProgramEmptyState
-                  isFiltered={isFiltered}
-                  bucketIsEmpty={bucketIsEmpty}
-                  bucketEmptyCopy={bucketEmptyCopy}
-                  onReset={resetFilters}
-                />
-              ) : (
-                <div className="grid gap-md sm:grid-cols-2">
-                  {visiblePrograms.map((program) => (
-                    <ProgramCard
-                      key={program.id}
-                      program={program}
-                      saved={saved.has(program.id)}
-                      onToggleSave={toggleSave}
-                      showExplainButton={isPro}
-                      matchScorePercent={matchPercent(program, profile)}
-                      aiRating={aiRatings[program.id]}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {hiddenCount > 0 && (
-                <div className="mt-xl flex flex-col items-center gap-sm rounded-lg border border-brand-blue-200 bg-brand-blue-200/20 p-lg text-center sm:flex-row sm:justify-between sm:text-left">
-                  <p className="text-body-sm text-brand-blue-700">
-                    {hiddenCount}건의 매칭 결과를 더 보려면 Pro로 업그레이드하세요.
-                  </p>
-                  <Link href={TOSS_ENABLED ? '/upgrade' : '/settings/billing'} className="shrink-0">
-                    <Button size="sm">Pro로 업그레이드</Button>
-                  </Link>
-                </div>
-              )}
-
-              {activeTab === '전체' && initialEvents.length > 0 && (
-                <div className="mt-xxl border-t border-hairline pt-xl">
-                  <div className="mb-md flex items-center justify-between">
-                    <h2 className="text-card-title text-ink">관련 행사 {initialEvents.length}건</h2>
-                    <button
-                      type="button"
-                      onClick={() => selectTab('행사')}
-                      className="text-body-sm-medium text-ink hover:underline"
+          <div className="grid grid-cols-1 gap-xl lg:grid-cols-[220px_1fr]">
+            <aside className="flex flex-col gap-lg">
+              {showFilters ? (
+                <>
+                  <div className="flex flex-col gap-xs">
+                    <Label htmlFor="category-filter">카테고리</Label>
+                    <Select id="category-filter" value={category} onChange={(e) => setCategory(e.target.value)}>
+                      {categories.map((c) => (
+                        <option key={c} value={c}>{c === '전체' ? c : categoryLabel(c)}</option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-xs">
+                    <Label htmlFor="region-filter">지역</Label>
+                    <Select id="region-filter" value={region} onChange={(e) => setRegion(e.target.value)}>
+                      {regions.map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-xs">
+                    <div className="flex items-center gap-xxs">
+                      <Label htmlFor="match-filter">매칭도</Label>
+                      <span className="inline-flex" title={MATCH_TOOLTIP} aria-label={MATCH_TOOLTIP}>
+                        <Info className="h-3.5 w-3.5 shrink-0 text-stone" aria-hidden="true" />
+                      </span>
+                    </div>
+                    <Select
+                      id="match-filter"
+                      value={minMatchPercent}
+                      onChange={(e) => setMinMatchPercent(Number(e.target.value))}
                     >
-                      전체 보기
-                    </button>
+                      {MATCH_RATE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </Select>
                   </div>
-                  <div className="grid gap-md sm:grid-cols-2">
-                    {initialEvents.map((event) => (
-                      <EventCard key={event.id} event={event} />
-                    ))}
-                  </div>
-                </div>
+                  {isPro && (
+                    <div className="flex flex-col gap-xs">
+                      <div className="flex items-center gap-xxs">
+                        <Label htmlFor="ai-match-filter">AI 매칭도</Label>
+                        <span className="inline-flex" title={AI_MATCH_TOOLTIP} aria-label={AI_MATCH_TOOLTIP}>
+                          <Info className="h-3.5 w-3.5 shrink-0 text-stone" aria-hidden="true" />
+                        </span>
+                      </div>
+                      <Select
+                        id="ai-match-filter"
+                        value={minAiMatchPercent}
+                        onChange={(e) => setMinAiMatchPercent(Number(e.target.value))}
+                      >
+                        {MATCH_RATE_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </Select>
+                      {aiFilterPending && (
+                        <p className="text-caption text-stone">
+                          AI가 아직 분석 중인 항목이 있어요. 완료되는 대로 결과가 추가돼요.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="rounded-lg border border-dashed border-hairline p-md text-body-sm text-steel">
+                  행사에는 카테고리·지역·매칭도·AI 매칭도 필터가 적용되지 않아요.
+                </p>
               )}
-            </>
-          )}
+            </aside>
+
+            <div>
+              {activeTab === '행사' ? (
+                <>
+                  <div className="mb-md flex items-center justify-between">
+                    <h2 className="text-card-title text-ink">다가오는 행사 {initialEvents.length}건</h2>
+                  </div>
+                  {initialEvents.length === 0 ? (
+                    <div className="flex flex-col items-center gap-sm rounded-lg border border-dashed border-hairline p-xxl text-center">
+                      <CalendarClock className="h-8 w-8 text-stone" aria-hidden="true" />
+                      <p className="text-body-sm text-steel">
+                        아직 등록된 행사가 없어요. 새로운 전시회·세미나·교육 정보가 올라오면 이곳에 표시됩니다.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-md sm:grid-cols-2">
+                      {initialEvents.map((event) => (
+                        <EventCard key={event.id} event={event} />
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="mb-md flex flex-wrap items-center justify-between gap-sm">
+                    <h2 className="text-card-title text-ink">
+                      매칭된 {headingLabel} {filteredPrograms.length}건
+                    </h2>
+                    <div className="flex items-center gap-sm">
+                      {!isPro && <Badge>무료 플랜 — {freeLimit}건만 표시 중</Badge>}
+                      <div className="flex items-center gap-xs">
+                        <Label htmlFor="sort-select" className="sr-only">정렬</Label>
+                        <Select
+                          id="sort-select"
+                          className="w-auto min-w-[11rem]"
+                          value={sortBy}
+                          onChange={(e) => setSortBy(e.target.value as SortBy)}
+                        >
+                          {SORT_OPTIONS.filter((opt) => !opt.proOnly || isPro).map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {visiblePrograms.length === 0 ? (
+                    <ProgramEmptyState
+                      isFiltered={isFiltered}
+                      bucketIsEmpty={bucketIsEmpty}
+                      bucketEmptyCopy={bucketEmptyCopy}
+                      onReset={resetFilters}
+                    />
+                  ) : (
+                    <div className="grid gap-md sm:grid-cols-2">
+                      {visiblePrograms.map((program) => (
+                        <ProgramCard
+                          key={program.id}
+                          program={program}
+                          saved={saved.has(program.id)}
+                          onToggleSave={toggleSave}
+                          showExplainButton={isPro}
+                          matchScorePercent={matchPercent(program, profile)}
+                          aiRating={aiRatings[program.id]}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {hiddenCount > 0 && (
+                    <div className="mt-xl flex flex-col items-center gap-sm rounded-lg border border-brand-blue-200 bg-brand-blue-200/20 p-lg text-center sm:flex-row sm:justify-between sm:text-left">
+                      <p className="text-body-sm text-brand-blue-700">
+                        {hiddenCount}건의 매칭 결과를 더 보려면 Pro로 업그레이드하세요.
+                      </p>
+                      <Link href={TOSS_ENABLED ? '/upgrade' : '/settings/billing'} className="shrink-0">
+                        <Button size="sm">Pro로 업그레이드</Button>
+                      </Link>
+                    </div>
+                  )}
+
+                  {activeTab === '전체' && initialEvents.length > 0 && (
+                    <div className="mt-xxl border-t border-hairline pt-xl">
+                      <div className="mb-md flex items-center justify-between">
+                        <h2 className="text-card-title text-ink">관련 행사 {initialEvents.length}건</h2>
+                        <button
+                          type="button"
+                          onClick={() => selectTab('행사')}
+                          className="text-body-sm-medium text-ink hover:underline"
+                        >
+                          전체 보기
+                        </button>
+                      </div>
+                      <div className="grid gap-md sm:grid-cols-2">
+                        {initialEvents.map((event) => (
+                          <EventCard key={event.id} event={event} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
