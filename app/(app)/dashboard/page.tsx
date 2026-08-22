@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getMatchedPrograms } from '@/lib/matching';
+import { getUpcomingEvents } from '@/lib/events';
+import { getPlanStatus } from '@/lib/trial';
 import { DashboardClient } from '@/components/DashboardClient';
 import { Badge } from '@/components/ui/badge';
 import type { Profile } from '@/lib/types';
@@ -21,12 +23,14 @@ export default async function DashboardPage() {
 
   if (!profile || !profile.onboarding_complete) redirect('/onboard');
 
-  const [programs, { data: savedRows }] = await Promise.all([
+  const [programs, events, { data: savedRows }] = await Promise.all([
     getMatchedPrograms(supabase, profile as Profile),
+    getUpcomingEvents(supabase, profile as Profile),
     supabase.from('saved_programs').select('program_id').eq('user_id', user.id),
   ]);
 
-  const isPro = profile.subscription === 'pro';
+  const planStatus = getPlanStatus(profile.subscription, user.created_at);
+  const isPro = planStatus !== 'free';
 
   return (
     <div>
@@ -35,7 +39,9 @@ export default async function DashboardPage() {
           <h1 className="text-heading-sm text-ink">
             안녕하세요{profile.company_name ? `, ${profile.company_name}님` : ''}
           </h1>
-          <Badge variant={isPro ? 'default' : 'secondary'}>{isPro ? 'Pro' : '무료 플랜'}</Badge>
+          <Badge variant={planStatus === 'free' ? 'secondary' : planStatus === 'trial' ? 'success' : 'default'}>
+            {planStatus === 'pro' ? 'Pro' : planStatus === 'trial' ? '무료체험 중' : '무료 플랜'}
+          </Badge>
         </div>
         <p className="text-body-sm text-steel">
           {profile.industry_name ? `${profile.industry_name} · ` : ''}{profile.region} 사업에 맞는
@@ -46,6 +52,7 @@ export default async function DashboardPage() {
         userId={user.id}
         profile={profile as Profile}
         initialPrograms={programs}
+        initialEvents={events}
         savedProgramIds={(savedRows ?? []).map((r) => r.program_id)}
         isPro={isPro}
         freeLimit={5}

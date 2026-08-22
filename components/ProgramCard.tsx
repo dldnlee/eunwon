@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { categoryLabel, cn, daysUntil, formatKoreanDate } from '@/lib/utils';
 import type { Program } from '@/lib/types';
-import { Bookmark } from 'lucide-react';
+import type { ProgramMatchRating } from '@/lib/ai/rateProgramMatch';
+import { Bookmark, Sparkles } from 'lucide-react';
 
 function DeadlineBadge({ deadlineEnd }: { deadlineEnd: string | null }) {
   const days = daysUntil(deadlineEnd);
@@ -21,6 +22,7 @@ export function ProgramCard({
   onToggleSave,
   showExplainButton = false,
   matchScorePercent,
+  aiRating,
 }: {
   program: Program;
   saved?: boolean;
@@ -28,6 +30,8 @@ export function ProgramCard({
   showExplainButton?: boolean;
   /** % of optional eligibility criteria also satisfied — see lib/matching.ts:scoreMatch */
   matchScorePercent?: number;
+  /** AI's title + 상세 내용 second opinion — a supplementary signal, see lib/ai/rateProgramMatch.ts */
+  aiRating?: ProgramMatchRating;
 }) {
   return (
     <Card className="flex flex-col hover:shadow-subtle">
@@ -40,6 +44,11 @@ export function ProgramCard({
             <DeadlineBadge deadlineEnd={program.deadline_end} />
             {matchScorePercent != null && (
               <Badge variant="success">매칭도 {matchScorePercent}%</Badge>
+            )}
+            {aiRating != null && (
+              <Badge variant="default" title={aiRating.reason || undefined}>
+                <Sparkles className="h-3 w-3" aria-hidden="true" /> AI 매칭도 {aiRating.matchRate}%
+              </Badge>
             )}
           </div>
           <button
