@@ -8,7 +8,9 @@ export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttrib
       <select
         ref={ref}
         className={cn(
-          'h-10 w-full appearance-none rounded-md border border-hairline bg-canvas px-md py-sm pr-9 text-body-sm text-ink transition-colors',
+          // min-h (not h) — h-10 is shorter than py-sm's padding plus text-body-sm's line-height
+          // combined, which clipped the option text against the bottom edge.
+          'min-h-10 w-full appearance-none rounded-md border border-hairline bg-canvas px-md py-sm pr-9 text-body-sm text-ink transition-colors',
           'focus-visible:outline-none focus-visible:border-brand-blue-deep focus-visible:ring-2 focus-visible:ring-brand-blue-deep/30',
           'disabled:cursor-not-allowed disabled:opacity-50',
           'max-sm:min-h-11'
