@@ -11,6 +11,7 @@ import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { BusinessNumberField } from '@/components/BusinessNumberField';
+import { OnboardingMascot } from '@/components/OnboardingMascot';
 import { cn, getAgeMonths } from '@/lib/utils';
 import { Check } from 'lucide-react';
 import type { EntityType } from '@/lib/types';
@@ -52,6 +53,16 @@ const LOADING_PHRASES = [
   '맞춤 지원사업 매칭 중...',
   '거의 다 됐어요...',
 ];
+
+// Short, step-specific guidance shown next to the mascot in the wizard header.
+const STEP_GUIDANCE: Record<Step, string> = {
+  '사업 형태': '사업자 등록을 하셨나요? 지금 상황에 맞는 걸 골라주세요.',
+  '사업자 정보': '상호명, 대표자명, 사업자등록번호를 확인할게요.',
+  '업종 · 지역': '업종과 지역에 따라 받을 수 있는 지원사업이 달라져요.',
+  '사업 아이템': '어떤 사업을 하시는지 알려주시면 매칭 정확도가 올라가요.',
+  '규모': '창업일, 직원 수, 매출 규모로 딱 맞는 조건을 찾아드려요.',
+  '추가 정보': '인증이나 특이사항까지 챙기면 놓치는 지원사업이 줄어들어요.',
+};
 
 // The transition screen never shows for less than this, so a fast save
 // never flashes — see handleSubmit.
@@ -99,6 +110,7 @@ function ChipGroup({
 
 export function OnboardingForm({ userId }: { userId: string }) {
   const router = useRouter();
+  const [showWelcome, setShowWelcome] = useState(true);
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -206,6 +218,24 @@ export function OnboardingForm({ userId }: { userId: string }) {
     router.refresh();
   }
 
+  if (showWelcome) {
+    return (
+      <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-xl px-md py-xl text-center">
+        <OnboardingMascot pose="wave" className="h-24 w-24 animate-scale-in" />
+        <div className="flex flex-col gap-sm animate-fade-in-up-delay">
+          <h2 className="text-heading-sm text-ink">안녕하세요! 반가워요</h2>
+          <p className="text-body-md text-charcoal">
+            몇 가지만 알려주시면 지금 조건에 딱 맞는 정부지원사업을 찾아드릴게요.
+          </p>
+          <p className="text-body-sm text-steel">사업 형태부터 규모까지, 2분이면 충분해요.</p>
+        </div>
+        <Button size="lg" className="animate-fade-in-up-delay" onClick={() => setShowWelcome(false)}>
+          시작하기
+        </Button>
+      </div>
+    );
+  }
+
   if (saving) {
     return (
       <div
@@ -229,12 +259,23 @@ export function OnboardingForm({ userId }: { userId: string }) {
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-xl">
-      <div>
-        <div className="mb-xs flex justify-between text-body-sm text-steel">
-          <span>{currentStep}</span>
-          <span>{step + 1} / {steps.length}</span>
+      <div className="flex flex-col gap-md">
+        <div className="flex items-start gap-sm">
+          <OnboardingMascot pose="point" className="h-11 w-11" />
+          <div
+            key={currentStep}
+            className="relative flex-1 animate-fade-in-up rounded-lg border border-hairline bg-surface px-md py-xs text-body-sm text-charcoal before:absolute before:left-[-6px] before:top-3 before:h-3 before:w-3 before:rotate-45 before:border-b before:border-l before:border-hairline before:bg-surface"
+          >
+            {STEP_GUIDANCE[currentStep]}
+          </div>
         </div>
-        <Progress value={((step + 1) / steps.length) * 100} />
+        <div>
+          <div className="mb-xs flex justify-between text-body-sm text-steel">
+            <span>{currentStep}</span>
+            <span>{step + 1} / {steps.length}</span>
+          </div>
+          <Progress value={((step + 1) / steps.length) * 100} />
+        </div>
       </div>
 
       {currentStep === '사업 형태' && (
