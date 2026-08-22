@@ -1,6 +1,7 @@
 {
   "crons": [
     { "path": "/api/cron/sync-programs", "schedule": "0 2 * * *" },
+    { "path": "/api/cron/sync-events", "schedule": "0 2 * * *" },
     { "path": "/api/cron/notify-users", "schedule": "0 9 * * *" },
     { "path": "/api/cron/charge-subscriptions", "schedule": "0 3 1 * *" }
   ]
