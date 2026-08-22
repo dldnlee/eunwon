@@ -43,14 +43,42 @@ interface ApiItem {
   rceptEngnHmpgUrl: string | null;
 }
 
+// Fixed vocabularies mirroring the exact option lists the onboarding form (components/OnboardingForm.tsx)
+// offers users — the AI is constrained to these so a program's `required_*` fields can be compared
+// directly against a profile's own fields (Array.includes / ===), instead of the old approach of
+// hoping freeform `ai_tags` text happened to contain the right words.
+const BUSINESS_TRAITS = ['B2B', 'B2C', 'B2G', '수출기업', '수출준비중', '채용 확대 예정'];
+const TECH_DOMAINS = ['AI/소프트웨어', '바이오/헬스케어', '그린에너지/환경', '제조/하드웨어', '핀테크', '콘텐츠/미디어'];
+const CERTIFICATIONS = ['벤처기업', '이노비즈', '메인비즈'];
+const EXTRA_TAGS = ['여성기업', '장애인기업', '사회적기업', '재창업', '청년창업'];
+const RND_CAPABILITY = ['기업부설연구소 보유', '전담부서 보유', '특허/지식재산권 보유'];
+const INVESTMENT_STAGES = ['없음', '시드투자 유치', '시리즈A 이상 투자유치'];
+const FUNDING_TYPES = ['보조금', '융자', '보증', '바우처', '세제지원', '기타'];
+
 interface EnrichedData {
   ai_summary: string;
   ai_tags: string[];
   regions: string[];              // extracted 시/도 list, or ['전국']
   entity_types: string[];         // 법인 | 개인사업자 | 예비창업자 | 중소기업 | 창업벤처
   max_age_months: number | null;  // e.g. 84 for "창업 7년 이내"
+  min_age_months: number | null;
   is_nationwide: boolean;
   apply_steps: string[];          // 신청 방법 원문을 단계별로 정리한 목록
+
+  min_employees: number | null;
+  max_employees: number | null;
+  min_annual_revenue_krw: number | null;
+  max_annual_revenue_krw: number | null;
+
+  funding_amount_krw: number | null;
+  funding_type: string | null;
+
+  required_business_traits: string[];
+  required_tech_domains: string[];
+  required_certifications: string[];
+  required_extra_tags: string[];
+  required_rnd_capability: string[];
+  required_investment_stage: string | null;
 }
 
 export interface SyncResult {
@@ -107,8 +135,8 @@ async function enrichWithAI(item: ApiItem): Promise<EnrichedData> {
   const cleanApplyMethod = stripHtml(item.reqstMthPapersCn ?? '');
 
   const text = await generateText({
-    maxTokens: 700,
-    prompt: `다음 정부지원사업 공고를 분석해서 JSON으로만 응답하세요. JSON 외 다른 텍스트는 절대 포함하지 마세요.
+    maxTokens: 1200,
+    prompt: `다음 정부지원사업 공고를 분석해서 JSON으로만 응답하세요. JSON 외 다른 텍스트는 절대 포함하지 마세요. 공고문에 명시적으로 언급되지 않은 조건은 추측하지 말고 null 또는 빈 배열로 두세요.
 
 사업명: ${item.pblancNm}
 주관기관: ${item.jrsdInsttNm}
@@ -121,8 +149,21 @@ async function enrichWithAI(item: ApiItem): Promise<EnrichedData> {
   "ai_summary": "2문장으로 핵심만 요약. 누가 신청할 수 있고 무엇을 지원받는지 포함",
   "ai_tags": ["태그1", "태그2"] (내용이 융자, 대출, 보증, 이차보전 등 정책자금/대출성 지원이라면 분류상 카테고리와 무관하게 "대출" 태그를 반드시 포함),
   "entity_types": ["해당되는 것만 포함: 예비창업자, 개인사업자, 법인, 중소기업, 스타트업"],
-  "max_age_months": 업력 제한이 있으면 개월수로 (예: 창업 7년 이내 = 84, 3년 이내 = 36, 없으면 null),
-  "apply_steps": ["신청방법 원문을 실행 가능한 단계별 목록으로 정리. 각 항목은 한 문장, 3~6단계 권장. 정보가 부족하면 원문을 그대로 한 단계로 넣기"]
+  "max_age_months": 업력 상한이 있으면 개월수로 (예: 창업 7년 이내 = 84, 3년 이내 = 36, 없으면 null),
+  "min_age_months": 업력 하한이 있으면 개월수로 (예: 설립 1년 이상 = 12, 없으면 null),
+  "apply_steps": ["신청방법 원문을 실행 가능한 단계별 목록으로 정리. 각 항목은 한 문장, 3~6단계 권장. 정보가 부족하면 원문을 그대로 한 단계로 넣기"],
+  "min_employees": 상시근로자 수 하한이 명시되어 있으면 숫자로, 없으면 null,
+  "max_employees": 상시근로자 수 상한이 명시되어 있으면 숫자로 (예: "50인 미만" = 49, "10인 이하" = 10), 없으면 null,
+  "min_annual_revenue_krw": 연매출 하한이 원 단위로 명시되어 있으면 숫자로, 없으면 null,
+  "max_annual_revenue_krw": 연매출 상한이 원 단위로 명시되어 있으면 숫자로 (예: "연매출 10억원 이하" = 1000000000), 없으면 null,
+  "funding_amount_krw": 1개 기업/과제당 지원하는 최대 금액이 원 단위로 명시되어 있으면 숫자로 (예: "최대 2천만원" = 20000000), 없으면 null,
+  "funding_type": 다음 중 가장 가까운 것 하나만 선택 — "보조금" | "융자" | "보증" | "바우처" | "세제지원" | "기타", 지원 형태를 알 수 없으면 null,
+  "required_business_traits": ["다음 중 지원대상으로 명시된 것만 포함, 없으면 빈 배열": ${JSON.stringify(BUSINESS_TRAITS)}],
+  "required_tech_domains": ["다음 중 특정 기술분야로 한정하는 경우만 포함, 없으면 빈 배열": ${JSON.stringify(TECH_DOMAINS)}],
+  "required_certifications": ["다음 중 필수 보유 인증으로 명시된 것만 포함, 없으면 빈 배열": ${JSON.stringify(CERTIFICATIONS)}],
+  "required_extra_tags": ["다음 중 지원대상으로 한정하는 것만 포함, 없으면 빈 배열": ${JSON.stringify(EXTRA_TAGS)}],
+  "required_rnd_capability": ["다음 중 필수 보유 역량으로 명시된 것만 포함, 없으면 빈 배열": ${JSON.stringify(RND_CAPABILITY)}],
+  "required_investment_stage": 투자유치 단계 요건이 명시되어 있으면 다음 중 하나 — ${JSON.stringify(INVESTMENT_STAGES)}, 없으면 null
 }`,
   });
 
@@ -132,9 +173,28 @@ async function enrichWithAI(item: ApiItem): Promise<EnrichedData> {
       ai_tags?: string[];
       entity_types?: string[];
       max_age_months?: number | null;
+      min_age_months?: number | null;
       apply_steps?: string[];
+      min_employees?: number | null;
+      max_employees?: number | null;
+      min_annual_revenue_krw?: number | null;
+      max_annual_revenue_krw?: number | null;
+      funding_amount_krw?: number | null;
+      funding_type?: string | null;
+      required_business_traits?: string[];
+      required_tech_domains?: string[];
+      required_certifications?: string[];
+      required_extra_tags?: string[];
+      required_rnd_capability?: string[];
+      required_investment_stage?: string | null;
     }>(text);
     const regions = extractRegionsFromHashtags(item.hashtags);
+
+    // Defensively filter every controlled-vocabulary field down to its known option list —
+    // the model is instructed to stick to these, but nothing stops a stray/hallucinated value
+    // from slipping through, and an unrecognized value would just silently never match anything.
+    const restrictTo = (values: string[] | undefined, allowed: string[]): string[] =>
+      (values ?? []).filter((v) => allowed.includes(v));
 
     return {
       ai_summary: parsed.ai_summary ?? '',
@@ -142,8 +202,23 @@ async function enrichWithAI(item: ApiItem): Promise<EnrichedData> {
       regions,
       entity_types: parsed.entity_types ?? [item.trgetNm],
       max_age_months: parsed.max_age_months ?? null,
+      min_age_months: parsed.min_age_months ?? null,
       is_nationwide: regions[0] === '전국',
       apply_steps: parsed.apply_steps?.length ? parsed.apply_steps : cleanApplyMethod ? [cleanApplyMethod] : [],
+      min_employees: parsed.min_employees ?? null,
+      max_employees: parsed.max_employees ?? null,
+      min_annual_revenue_krw: parsed.min_annual_revenue_krw ?? null,
+      max_annual_revenue_krw: parsed.max_annual_revenue_krw ?? null,
+      funding_amount_krw: parsed.funding_amount_krw ?? null,
+      funding_type: FUNDING_TYPES.includes(parsed.funding_type ?? '') ? (parsed.funding_type as string) : null,
+      required_business_traits: restrictTo(parsed.required_business_traits, BUSINESS_TRAITS),
+      required_tech_domains: restrictTo(parsed.required_tech_domains, TECH_DOMAINS),
+      required_certifications: restrictTo(parsed.required_certifications, CERTIFICATIONS),
+      required_extra_tags: restrictTo(parsed.required_extra_tags, EXTRA_TAGS),
+      required_rnd_capability: restrictTo(parsed.required_rnd_capability, RND_CAPABILITY),
+      required_investment_stage: INVESTMENT_STAGES.includes(parsed.required_investment_stage ?? '')
+        ? (parsed.required_investment_stage as string)
+        : null,
     };
   } catch {
     // AI returned unparseable response — use safe fallback
@@ -154,8 +229,21 @@ async function enrichWithAI(item: ApiItem): Promise<EnrichedData> {
       regions: extractRegionsFromHashtags(item.hashtags),
       entity_types: [item.trgetNm],
       max_age_months: null,
+      min_age_months: null,
       is_nationwide: false,
       apply_steps: cleanApplyMethod ? [cleanApplyMethod] : [],
+      min_employees: null,
+      max_employees: null,
+      min_annual_revenue_krw: null,
+      max_annual_revenue_krw: null,
+      funding_amount_krw: null,
+      funding_type: null,
+      required_business_traits: [],
+      required_tech_domains: [],
+      required_certifications: [],
+      required_extra_tags: [],
+      required_rnd_capability: [],
+      required_investment_stage: null,
     };
   }
 }
@@ -188,8 +276,23 @@ async function upsertProgram(
     region:         enriched.regions,
     entity_types:   enriched.entity_types,
     max_age_months: enriched.max_age_months,
+    min_age_months: enriched.min_age_months,
     is_nationwide:  enriched.is_nationwide,
     apply_steps:    enriched.apply_steps,
+
+    min_employees:             enriched.min_employees,
+    max_employees:             enriched.max_employees,
+    min_annual_revenue_krw:    enriched.min_annual_revenue_krw,
+    max_annual_revenue_krw:    enriched.max_annual_revenue_krw,
+    funding_amount_krw:        enriched.funding_amount_krw,
+    funding_type:              enriched.funding_type,
+    required_business_traits:  enriched.required_business_traits,
+    required_tech_domains:     enriched.required_tech_domains,
+    required_certifications:   enriched.required_certifications,
+    required_extra_tags:       enriched.required_extra_tags,
+    required_rnd_capability:   enriched.required_rnd_capability,
+    required_investment_stage: enriched.required_investment_stage,
+
     is_active:      true,
     updated_at:     new Date().toISOString(),
   };
@@ -231,8 +334,17 @@ export async function syncPrograms(log: (msg: string) => void = console.log): Pr
 
   log('🚀 Starting program sync...');
 
-  // Mark all existing programs inactive — we'll reactivate ones still in the API
-  await supabase.from('programs').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000');
+  // Every program upserted below gets updated_at bumped to "now" — so once every
+  // page has synced successfully, anything with an *older* updated_at is a bizinfo
+  // program that fell off the listing (closed/removed) and can be deactivated.
+  //
+  // We deliberately do NOT mark everything inactive up front. This job iterates
+  // ~1,600 programs with an AI enrichment call each, which can easily exceed the
+  // function's maxDuration — an early mass-deactivate paired with a timeout mid-loop
+  // would silently wipe is_active for every program the loop hadn't reached yet.
+  // Deactivating only at the end, and only if the full crawl completes, means a
+  // timed-out run just leaves existing rows untouched instead of blanking them.
+  const syncStartedAt = new Date().toISOString();
 
   let pageNo = 1;
   let totalCount = Infinity;
@@ -263,6 +375,18 @@ export async function syncPrograms(log: (msg: string) => void = console.log): Pr
     }
 
     pageNo++;
+  }
+
+  // Only reached if every page synced without throwing — safe to deactivate
+  // whatever bizinfo no longer lists.
+  const { error: deactivateError } = await supabase
+    .from('programs')
+    .update({ is_active: false })
+    .eq('source', 'bizinfo')
+    .lt('updated_at', syncStartedAt);
+
+  if (deactivateError) {
+    log(`⚠️  Failed to deactivate stale programs: ${deactivateError.message}`);
   }
 
   log(`✅ Done. Synced: ${synced}, Skipped (closed): ${skipped}`);
