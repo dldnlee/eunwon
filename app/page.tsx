@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Logo } from '@/components/Logo';
 import { ReviewsMarquee } from '@/components/ReviewsMarquee';
+import { ProductShowcase } from '@/components/ProductShowcase';
 import { FaqSection } from '@/components/FaqSection';
 import { createClient } from '@/lib/supabase/server';
 import { TOSS_ENABLED } from '@/lib/payments';
@@ -132,6 +133,8 @@ export default async function LandingPage() {
           ))}
         </div>
       </section>
+
+      <ProductShowcase />
 
       {/* Reviews */}
       {reviews.length > 0 && (
