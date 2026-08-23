@@ -10,6 +10,13 @@
 import { generateText, parseJsonResponse } from '../ai/client';
 import { createServiceClient } from '../supabase/server';
 import { stripHtml } from '../utils';
+import {
+  ELIGIBILITY_EXTRACTOR_VERSION,
+  extractEligibilityRequirements,
+  prepareEligibilitySources,
+  sourceFingerprint,
+} from '../eligibility/extraction';
+import { UPSTAGE_MODEL } from '../ai/client';
 
 const API_BASE = 'https://apis.data.go.kr/1421000/bizinfo/pblancBsnsService';
 const PAGE_SIZE = 100;
@@ -297,12 +304,158 @@ async function upsertProgram(
     updated_at:     new Date().toISOString(),
   };
 
-  const { error } = await supabase
+  const { data: program, error } = await supabase
     .from('programs')
-    .upsert(record, { onConflict: 'external_id' });
+    .upsert(record, { onConflict: 'external_id' })
+    .select('id')
+    .single();
 
   if (error) {
     console.error(`  ❌ Supabase error for ${item.pblancId}:`, error.message);
+    return;
+  }
+
+  try {
+    await persistSourceBackedEligibility(supabase, program.id, item);
+  } catch (eligibilityError) {
+    // Eligibility provenance is additive. A failure must never roll back or erase the existing
+    // program/enrichment fields, so the main sync can continue safely.
+    console.warn(
+      `  ⚠️  Eligibility extraction failed for ${item.pblancId}:`,
+      eligibilityError instanceof Error ? eligibilityError.message : eligibilityError
+    );
+  }
+}
+
+async function persistSourceBackedEligibility(
+  supabase: ReturnType<typeof createServiceClient>,
+  programId: string,
+  item: ApiItem
+): Promise<void> {
+  const sources = prepareEligibilitySources([
+    {
+      sourceKey: 'summary',
+      sourceType: 'api_text',
+      sourceUrl: item.pblancUrl,
+      title: '사업 내용',
+      contentText: stripHtml(item.bsnsSumryCn ?? ''),
+    },
+    {
+      sourceKey: 'target',
+      sourceType: 'api_text',
+      sourceUrl: item.pblancUrl,
+      title: '지원 대상',
+      contentText: stripHtml(item.trgetNm ?? ''),
+    },
+    {
+      sourceKey: 'application',
+      sourceType: 'api_text',
+      sourceUrl: item.pblancUrl,
+      title: '신청 방법 및 서류',
+      contentText: stripHtml(item.reqstMthPapersCn ?? ''),
+    },
+  ]);
+
+  if (sources.length === 0) return;
+
+  const { data: storedSources, error: sourceError } = await supabase
+    .from('program_source_documents')
+    .upsert(
+      sources.map((source) => ({
+        program_id: programId,
+        source_key: source.sourceKey,
+        source_type: source.sourceType,
+        source_url: source.sourceUrl ?? null,
+        title: source.title ?? null,
+        content_text: source.contentText,
+        content_sha256: source.contentSha256,
+        extraction_status: 'extracted',
+        updated_at: new Date().toISOString(),
+      })),
+      { onConflict: 'program_id,source_key' }
+    )
+    .select('id,source_key');
+  if (sourceError) throw new Error(`source persistence failed: ${sourceError.message}`);
+
+  const fingerprint = sourceFingerprint(sources);
+  const { data: cachedRun, error: cacheError } = await supabase
+    .from('program_extraction_runs')
+    .select('id')
+    .eq('program_id', programId)
+    .eq('source_fingerprint', fingerprint)
+    .eq('extractor_version', ELIGIBILITY_EXTRACTOR_VERSION)
+    .eq('status', 'succeeded')
+    .maybeSingle();
+  if (cacheError) throw new Error(`extraction cache lookup failed: ${cacheError.message}`);
+  if (cachedRun) return;
+
+  const { data: run, error: runError } = await supabase
+    .from('program_extraction_runs')
+    .upsert({
+      program_id: programId,
+      source_fingerprint: fingerprint,
+      extractor_version: ELIGIBILITY_EXTRACTOR_VERSION,
+      model: UPSTAGE_MODEL,
+      status: 'running',
+      error_message: null,
+      started_at: new Date().toISOString(),
+      completed_at: null,
+    }, { onConflict: 'program_id,source_fingerprint,extractor_version' })
+    .select('id')
+    .single();
+  if (runError) throw new Error(`extraction run creation failed: ${runError.message}`);
+
+  try {
+    const extraction = await extractEligibilityRequirements(sources);
+    const sourceIds = new Map(
+      (storedSources ?? []).map((source: { id: string; source_key: string }) => [source.source_key, source.id])
+    );
+
+    const rows = extraction.requirements.map((requirement) => ({
+      program_id: programId,
+      extraction_run_id: run.id,
+      source_document_id: requirement.sourceKey ? sourceIds.get(requirement.sourceKey) ?? null : null,
+      requirement_type: requirement.requirementType,
+      operator: requirement.operator,
+      value_json: requirement.value,
+      normalized_text: requirement.normalizedText,
+      evidence_quote: requirement.evidenceQuote,
+      evidence_start: requirement.evidenceStart,
+      evidence_end: requirement.evidenceEnd,
+      verification: requirement.verification,
+      confidence: requirement.confidence,
+    }));
+
+    // A failed run is retried with the same unique run row. Clear any rows left by an earlier
+    // partial attempt before inserting the newly validated result.
+    const { error: clearError } = await supabase
+      .from('program_eligibility_requirements')
+      .delete()
+      .eq('extraction_run_id', run.id);
+    if (clearError) throw new Error(`previous requirement cleanup failed: ${clearError.message}`);
+
+    if (rows.length > 0) {
+      const { error: requirementError } = await supabase
+        .from('program_eligibility_requirements')
+        .insert(rows);
+      if (requirementError) throw new Error(`requirement persistence failed: ${requirementError.message}`);
+    }
+
+    const { error: completionError } = await supabase
+      .from('program_extraction_runs')
+      .update({ status: 'succeeded', completed_at: new Date().toISOString() })
+      .eq('id', run.id);
+    if (completionError) throw new Error(`run completion failed: ${completionError.message}`);
+  } catch (error) {
+    await supabase
+      .from('program_extraction_runs')
+      .update({
+        status: 'failed',
+        error_message: error instanceof Error ? error.message.slice(0, 1000) : 'Unknown extraction error',
+        completed_at: new Date().toISOString(),
+      })
+      .eq('id', run.id);
+    throw error;
   }
 }
 
