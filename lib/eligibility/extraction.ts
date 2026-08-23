@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { generateText, parseJsonResponse, UPSTAGE_MODEL } from '../ai/client';
 
-export const ELIGIBILITY_EXTRACTOR_VERSION = 'eligibility-v1';
+export const ELIGIBILITY_EXTRACTOR_VERSION = 'eligibility-v2';
 
 export const REQUIREMENT_TYPES = [
   'entity_type', 'region', 'business_age', 'employee_count', 'annual_revenue',
@@ -145,9 +145,15 @@ export async function extractEligibilityRequirements(
 원칙:
 - 원문에 없는 조건은 만들지 마세요.
 - verified는 evidence_quote가 해당 source_key의 text에 글자 그대로 존재할 때만 사용하세요.
+- evidence_quote 자체가 normalized_text의 전체 의미를 뒷받침해야 verified입니다. 인용보다
+  지역·사업장·업종·기간 등의 의미를 넓히거나 바꾸는 정규화는 inferred로 표시하세요.
 - 명시적 조건이지만 정규화에 해석이 필요한 경우 inferred로 표시하세요.
 - confidence는 추출 확신도 0~1입니다. 신청자의 자격 확률이 아닙니다.
+- confidence 1.0을 기본값처럼 쓰지 마세요. 원문 표현과 정규화가 사실상 동일하고
+  문맥에 모호성이 전혀 없을 때만 1.0을 사용하세요.
 - 홍보 문구, 지원 내용, 신청 절차는 자격 조건으로 추출하지 마세요.
+- source_key가 target인 비어 있지 않은 지원 대상 문구는 최소 한 번 검토하고, 중소기업,
+  소상공인, 법인 같은 명시적 대상 분류가 있으면 반드시 요구조건으로 추출하세요.
 
 소스:
 ${JSON.stringify(sourcePayload)}
@@ -169,6 +175,11 @@ ${JSON.stringify(sourcePayload)}
 
   const parsedJson = parseJsonResponse<unknown>(text);
   const parsedResponse = responseSchema.parse(parsedJson);
+  if (parsedResponse.requirements.length === 0 && sources.some(
+    (source) => source.sourceKey === 'target' && source.contentText.trim().length > 0
+  )) {
+    throw new Error('Extraction returned no requirements despite a non-empty target source');
+  }
   return {
     extractorVersion: ELIGIBILITY_EXTRACTOR_VERSION,
     model: UPSTAGE_MODEL,

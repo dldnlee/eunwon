@@ -15,6 +15,7 @@ import {
   extractEligibilityRequirements,
   prepareEligibilitySources,
   sourceFingerprint,
+  type EligibilitySourceInput,
 } from '../eligibility/extraction';
 import { UPSTAGE_MODEL } from '../ai/client';
 
@@ -316,7 +317,29 @@ async function upsertProgram(
   }
 
   try {
-    await persistSourceBackedEligibility(supabase, program.id, item);
+    await persistEligibilityEvidenceForSources(supabase, program.id, [
+      {
+        sourceKey: 'summary',
+        sourceType: 'api_text',
+        sourceUrl: item.pblancUrl,
+        title: '사업 내용',
+        contentText: stripHtml(item.bsnsSumryCn ?? ''),
+      },
+      {
+        sourceKey: 'target',
+        sourceType: 'api_text',
+        sourceUrl: item.pblancUrl,
+        title: '지원 대상',
+        contentText: stripHtml(item.trgetNm ?? ''),
+      },
+      {
+        sourceKey: 'application',
+        sourceType: 'api_text',
+        sourceUrl: item.pblancUrl,
+        title: '신청 방법 및 서류',
+        contentText: stripHtml(item.reqstMthPapersCn ?? ''),
+      },
+    ]);
   } catch (eligibilityError) {
     // Eligibility provenance is additive. A failure must never roll back or erase the existing
     // program/enrichment fields, so the main sync can continue safely.
@@ -327,34 +350,12 @@ async function upsertProgram(
   }
 }
 
-async function persistSourceBackedEligibility(
+export async function persistEligibilityEvidenceForSources(
   supabase: ReturnType<typeof createServiceClient>,
   programId: string,
-  item: ApiItem
+  sourceInputs: EligibilitySourceInput[]
 ): Promise<void> {
-  const sources = prepareEligibilitySources([
-    {
-      sourceKey: 'summary',
-      sourceType: 'api_text',
-      sourceUrl: item.pblancUrl,
-      title: '사업 내용',
-      contentText: stripHtml(item.bsnsSumryCn ?? ''),
-    },
-    {
-      sourceKey: 'target',
-      sourceType: 'api_text',
-      sourceUrl: item.pblancUrl,
-      title: '지원 대상',
-      contentText: stripHtml(item.trgetNm ?? ''),
-    },
-    {
-      sourceKey: 'application',
-      sourceType: 'api_text',
-      sourceUrl: item.pblancUrl,
-      title: '신청 방법 및 서류',
-      contentText: stripHtml(item.reqstMthPapersCn ?? ''),
-    },
-  ]);
+  const sources = prepareEligibilitySources(sourceInputs);
 
   if (sources.length === 0) return;
 

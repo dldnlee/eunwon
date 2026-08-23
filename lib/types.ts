@@ -1,7 +1,8 @@
 export type EntityType = '법인' | '개인사업자' | '예비창업자';
 export type Subscription = 'free' | 'pro';
-export type SavedStatus = 'saved' | 'applied' | 'selected' | 'rejected';
-export type NotificationType = 'new_match' | 'deadline_7d' | 'deadline_3d' | 'deadline_1d';
+export type { SavedStatus } from './application-status';
+import type { SavedStatus } from './application-status';
+export type NotificationType = 'new_match' | 'deadline_reminder';
 export type DocumentType = 'bizreg' | 'financial' | 'resume' | 'past_application';
 
 export interface Program {
@@ -91,6 +92,11 @@ export interface Profile {
 
   subscription: Subscription;
   notify_email: boolean;
+  notify_opportunity_digest: boolean;
+  notify_deadline_reminders: boolean;
+  deadline_reminder_days: number[];
+  notify_event_reminders: boolean;
+  event_reminder_days: number[];
   onboarding_complete: boolean;
   toss_billing_key: string | null;
   toss_customer_key: string | null;
@@ -98,6 +104,14 @@ export interface Profile {
 
   created_at: string;
   updated_at: string;
+}
+
+export interface SavedEvent {
+  id: string;
+  user_id: string;
+  event_id: string;
+  notes: string | null;
+  created_at: string;
 }
 
 export interface Event {
@@ -121,6 +135,11 @@ export interface Event {
   apply_end: string | null;
 
   detail_url: string | null;
+  registration_url: string | null;
+  location_name: string | null;
+  is_online: boolean;
+  source_updated_at: string | null;
+  content_sha256: string | null;
 
   is_active: boolean;
   created_at: string;
@@ -136,7 +155,11 @@ export interface SavedProgram {
   received_at: string | null;
   amount_krw: number | null;
   notes: string | null;
+  submitted_at: string | null;
+  next_action: string | null;
+  next_action_due_at: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export interface NotificationLog {
@@ -144,6 +167,7 @@ export interface NotificationLog {
   user_id: string;
   program_id: string;
   type: NotificationType;
+  lead_days: number | null;
   sent_at: string;
 }
 

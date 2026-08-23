@@ -74,3 +74,10 @@ test('AI extraction response passes through deterministic evidence validation', 
   assert.equal(result.requirements[0].verification, 'verified');
   assert.match(result.sourceFingerprint, /^[0-9a-f]{64}$/);
 });
+
+test('an empty extraction cannot silently succeed when a target source exists', async () => {
+  await assert.rejects(
+    extractEligibilityRequirements(sources, async () => JSON.stringify({ requirements: [] })),
+    /no requirements/
+  );
+});

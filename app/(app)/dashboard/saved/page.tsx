@@ -14,7 +14,7 @@ export default async function SavedProgramsPage() {
 
   const { data: rows } = await supabase
     .from('saved_programs')
-    .select('id, status, notes, outcome, received_at, amount_krw, program:programs(*)')
+    .select('id, status, notes, outcome, received_at, amount_krw, submitted_at, next_action, next_action_due_at, program:programs(*)')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
@@ -25,8 +25,30 @@ export default async function SavedProgramsPage() {
     outcome: string | null;
     received_at: string | null;
     amount_krw: number | null;
+    submitted_at: string | null;
+    next_action: string | null;
+    next_action_due_at: string | null;
     program: Program;
   }[];
+
+  const savedIds = saved.map((row) => row.id);
+  const { data: historyRows } = savedIds.length > 0
+    ? await supabase
+        .from('saved_program_status_history')
+        .select('saved_program_id, from_status, to_status, changed_at')
+        .in('saved_program_id', savedIds)
+        .order('changed_at', { ascending: false })
+    : { data: [] };
+  const historyBySavedId = new Map<string, { fromStatus: SavedStatus; toStatus: SavedStatus; changedAt: string }[]>();
+  for (const history of historyRows ?? []) {
+    const current = historyBySavedId.get(history.saved_program_id) ?? [];
+    current.push({
+      fromStatus: history.from_status as SavedStatus,
+      toStatus: history.to_status as SavedStatus,
+      changedAt: history.changed_at,
+    });
+    historyBySavedId.set(history.saved_program_id, current);
+  }
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -50,6 +72,10 @@ export default async function SavedProgramsPage() {
               initialOutcome={row.outcome ?? ''}
               initialReceivedAt={row.received_at ?? ''}
               initialAmountKrw={row.amount_krw != null ? String(row.amount_krw) : ''}
+              initialSubmittedAt={row.submitted_at ?? ''}
+              initialNextAction={row.next_action ?? ''}
+              initialNextActionDueAt={row.next_action_due_at ?? ''}
+              initialHistory={historyBySavedId.get(row.id) ?? []}
             />
           ))}
         </div>
