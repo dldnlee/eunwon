@@ -7,6 +7,7 @@ import { ProgramCard } from '@/components/ProgramCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { FadeIn } from '@/components/motion/FadeIn';
 import type { Program } from '@/lib/types';
 import { Sparkles, Bookmark } from 'lucide-react';
 
@@ -186,7 +187,7 @@ export function ProductShowcase() {
       </div>
 
       <div className="mt-xxl grid gap-xl lg:grid-cols-2">
-        <div>
+        <FadeIn>
           <BrowserFrame label="eunwon.ai/dashboard">
             <div className="flex flex-col gap-md">
               {SAMPLE_PROGRAMS.map((program) => (
@@ -202,16 +203,16 @@ export function ProductShowcase() {
           <p className="mt-md text-center text-body-sm text-steel sm:text-left">
             매칭도와 AI 매칭도를 함께 보여드려 어떤 사업부터 신청할지 바로 판단할 수 있어요.
           </p>
-        </div>
+        </FadeIn>
 
-        <div>
+        <FadeIn delay={0.15}>
           <BrowserFrame label="eunwon.ai/program/...">
             <DetailPagePreview />
           </BrowserFrame>
           <p className="mt-md text-center text-body-sm text-steel sm:text-left">
             공고문을 다 읽지 않아도, AI가 왜 나에게 맞는지와 신청 방법을 정리해드려요.
           </p>
-        </div>
+        </FadeIn>
       </div>
     </section>
   );

@@ -4,35 +4,35 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Logo } from '@/components/Logo';
+import { Footer } from '@/components/Footer';
 import { ReviewsMarquee } from '@/components/ReviewsMarquee';
 import { ProductShowcase } from '@/components/ProductShowcase';
 import { FaqSection } from '@/components/FaqSection';
+import { MotionProvider } from '@/components/motion/MotionProvider';
+import { FadeIn } from '@/components/motion/FadeIn';
+import { HighlightText } from '@/components/motion/HighlightText';
 import { createClient } from '@/lib/supabase/server';
 import { TOSS_ENABLED } from '@/lib/payments';
 import type { Review } from '@/lib/types';
-import { CheckCircle2, Search, Sparkles, FileText } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 
+// Single accent color (brand-blue) instead of a different brand color per card — a numbered
+// label stands in for the old per-feature icon.
 const FEATURES = [
   {
-    icon: Search,
+    number: '01',
     title: '정확한 매칭',
-    description: '업종, 지역, 업력, 규모까지 반영해 신청 가능한 사업만 보여드려요.',
-    iconBg: 'bg-brand-blue-200',
-    iconColor: 'text-brand-blue-deep',
+    description: '업종, 지역, 업력, 규모, 인증까지 반영해 신청 자격을 충족하는 사업만 보여드려요.',
   },
   {
-    icon: Sparkles,
+    number: '02',
     title: 'AI 요약 & 설명',
-    description: '복잡한 공고문을 Solar Pro가 이해하기 쉬운 한국어로 요약해드려요.',
-    iconBg: 'bg-brand-purple/10',
-    iconColor: 'text-brand-purple',
+    description: '복잡한 공고문을 AI가 핵심만 정리하고, 왜 나에게 맞는지도 구체적으로 설명해드려요.',
   },
   {
-    icon: FileText,
+    number: '03',
     title: '사업계획서 생성',
-    description: '사업 개요부터 기대 효과까지, 신청서에 바로 쓸 수 있는 초안을 AI가 작성해드려요.',
-    iconBg: 'bg-brand-coral/10',
-    iconColor: 'text-brand-coral',
+    description: '사업 개요부터 기대 효과까지, 신청서에 바로 쓸 초안을 AI가 먼저 작성해드려요.',
   },
 ];
 
@@ -60,6 +60,7 @@ export default async function LandingPage() {
   const reviews = await getReviews();
 
   return (
+    <MotionProvider>
     <div className="relative isolate min-h-screen overflow-hidden bg-canvas">
       {/* Background color field, spread down the full page height so every glass panel — however far down you scroll — has some color behind it */}
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
@@ -72,8 +73,10 @@ export default async function LandingPage() {
       </div>
 
       {/* Nav — fixed (not sticky) so it stays pinned regardless of the overflow-hidden root above,
-          and so its glass background keeps showing the blobs behind it as content scrolls under it */}
-      <header className={`fixed inset-x-0 top-0 z-20 border-b ${GLASS}`}>
+          and so its glass background keeps showing the blobs behind it as content scrolls under it.
+          FadeIn renders directly as the <header> (see its own comment) so the fixed positioning
+          isn't broken by an animated wrapper. */}
+      <FadeIn as="header" className={`fixed inset-x-0 top-0 z-20 border-b ${GLASS}`}>
         <div className="mx-auto flex max-w-6xl flex-nowrap items-center justify-between gap-sm px-md py-md sm:px-xl">
           <span className="flex shrink-0 items-center gap-xs whitespace-nowrap text-card-title text-ink">
             <Logo className="h-6 w-auto" />
@@ -91,60 +94,73 @@ export default async function LandingPage() {
             </Link>
           </div>
         </div>
-      </header>
+      </FadeIn>
       {/* Spacer for the fixed header above (measured ~69-77px depending on breakpoint) */}
       <div className="h-20" aria-hidden="true" />
 
       {/* Hero */}
       <section className="relative">
-        <div className="relative mx-auto grid max-w-6xl items-center gap-xxl px-xl py-section-lg sm:py-hero md:grid-cols-[minmax(0,1fr)_320px] lg:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="relative mx-auto grid max-w-6xl items-center gap-xxl px-xl py-section-lg sm:py-hero md:grid-cols-[minmax(0,1fr)_360px] lg:grid-cols-[minmax(0,1fr)_440px]">
           <div className="text-center md:text-left">
-            <Badge className={`mb-md border ${GLASS} text-brand-blue-deep`}>
-              Upstage Solar Pro 기반 AI 매칭
-            </Badge>
-            <h1 className="text-heading-md text-balance text-ink sm:text-heading-lg lg:text-display-lg">
-              놓치고 있는 정부지원사업을
-              <br />
-              찾아드립니다
-            </h1>
-            <p className="mx-auto mt-lg max-w-2xl text-body-md text-steel sm:text-subtitle md:mx-0">
-              내 사업 정보만 입력하면, 수백 개의 정부지원사업 중 지금 신청할 수 있는 것만
-              골라드려요. 소상공인, 스타트업, 중소기업을 위한 가장 쉬운 지원사업 매칭 서비스.
-            </p>
-            <div className="mt-xl flex justify-center gap-sm md:justify-start">
+            <FadeIn>
+              <Badge className={`mb-md border font-normal ${GLASS} text-brand-blue-deep`}>
+                지원을 찾는 가장 쉬운 이름, <strong className="font-bold">eunwon</strong>
+              </Badge>
+            </FadeIn>
+            <FadeIn delay={0.1}>
+              <h1 className="text-heading-md text-balance text-ink sm:text-heading-lg lg:text-display-lg">
+                지원사업,{' '}
+                <HighlightText>
+                  <strong className="font-bold">eunwon</strong>
+                </HighlightText>
+                이 먼저 찾습니다
+              </h1>
+            </FadeIn>
+            <FadeIn delay={0.2}>
+              <p className="mx-auto mt-lg max-w-2xl text-body-md text-steel sm:text-subtitle md:mx-0">
+                사업 정보만 입력하면, 신청 조건과 마감일까지 한 번에 정리해드려요.
+              </p>
+            </FadeIn>
+            <FadeIn delay={0.3} className="mt-xl flex justify-center gap-sm md:justify-start">
               <Link href="/signup">
-                <Button size="lg">내 사업에 맞는 지원사업 찾기</Button>
+                <Button size="lg">내가 받을 지원사업 확인하기</Button>
               </Link>
-            </div>
+            </FadeIn>
           </div>
-          <div className="relative mx-auto flex h-64 w-full max-w-80 items-end justify-center sm:h-72 md:h-80" aria-label="은원 AI 매칭 안내 마스코트">
-            <div className={`absolute inset-x-md bottom-0 h-48 rounded-hero border ${GLASS}`} aria-hidden="true" />
+          <FadeIn
+            delay={0.15}
+            className="relative mx-auto h-64 w-full max-w-[440px] overflow-hidden sm:h-72 md:h-80"
+            ariaLabel="eunwon AI 매칭 안내 마스코트"
+          >
+            <div className={`absolute inset-x-xs bottom-sm h-48 rounded-hero border ${GLASS}`} aria-hidden="true" />
             <Image
-              src="/mascot/delighted.png"
-              alt="맞춤 지원사업을 찾아 기뻐하는 은원 마스코트"
-              width={420}
-              height={420}
+              src="/mascot/on-plane.png"
+              alt="비행기를 타고 맞춤 지원사업을 찾아가는 eunwon 마스코트"
+              width={1095}
+              height={1369}
               priority
-              sizes="(max-width: 767px) 280px, 400px"
-              className="relative z-10 h-full w-auto object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.10)]"
+              sizes="(max-width: 767px) 112vw, 493px"
+              className="absolute left-1/2 top-[-72px] z-10 h-auto w-[112%] max-w-none -translate-x-1/2 drop-shadow-[0_8px_16px_rgba(0,0,0,0.10)] sm:top-[-80px] md:top-[-92px]"
             />
-          </div>
+          </FadeIn>
         </div>
       </section>
 
       {/* Features */}
       <section className="relative mx-auto max-w-6xl px-xl py-section">
         <div className="grid gap-lg sm:grid-cols-3">
-          {FEATURES.map(({ icon: Icon, title, description, iconBg, iconColor }) => (
-            <Card key={title} className={`border ${GLASS} shadow-[0_8px_32px_rgba(0,0,0,0.06)]`}>
-              <CardHeader>
-                <div className={`mb-xs flex h-10 w-10 items-center justify-center rounded-full ${iconBg}`}>
-                  <Icon className={`h-5 w-5 ${iconColor}`} aria-hidden="true" />
-                </div>
-                <CardTitle>{title}</CardTitle>
-                <CardDescription>{description}</CardDescription>
-              </CardHeader>
-            </Card>
+          {FEATURES.map(({ number, title, description }, index) => (
+            <FadeIn key={title} delay={index * 0.1} className="h-full">
+              <Card className={`h-full border ${GLASS} shadow-[0_8px_32px_rgba(0,0,0,0.06)]`}>
+                <CardHeader>
+                  <span className="mb-xs text-heading-sm font-semibold text-brand-blue-deep">
+                    {number}
+                  </span>
+                  <CardTitle>{title}</CardTitle>
+                  <CardDescription className="leading-relaxed">{description}</CardDescription>
+                </CardHeader>
+              </Card>
+            </FadeIn>
           ))}
         </div>
       </section>
@@ -153,14 +169,14 @@ export default async function LandingPage() {
 
       {/* Reviews */}
       {reviews.length > 0 && (
-        <section className="relative py-section">
+        <FadeIn as="section" className="relative py-section">
           <h2 className="mb-xl text-center text-heading-md text-ink">이용자들의 후기</h2>
           <ReviewsMarquee reviews={reviews} />
-        </section>
+        </FadeIn>
       )}
 
       {/* Pricing */}
-      <section className="relative border-t border-white/60 py-section">
+      <FadeIn as="section" id="pricing" className="relative border-t border-white/60 py-section">
         <div className="relative mx-auto max-w-4xl px-xl">
           <h2 className="text-center text-heading-md text-ink">요금제</h2>
           <div className="mt-xxl grid gap-lg sm:grid-cols-2">
@@ -231,16 +247,14 @@ export default async function LandingPage() {
             </Card>
           </div>
         </div>
-      </section>
+      </FadeIn>
 
-      <FaqSection />
+      <FadeIn as="div">
+        <FaqSection />
+      </FadeIn>
 
-      <footer className={`relative border-t ${GLASS} py-xl text-center text-caption text-stone`}>
-        <p>© {new Date().getFullYear()} eunwon AI</p>
-        <Link href="/contact" className="mt-xs inline-block text-body-sm text-steel hover:text-ink hover:underline">
-          문의하기
-        </Link>
-      </footer>
+      <Footer />
     </div>
+    </MotionProvider>
   );
 }
