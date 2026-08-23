@@ -353,8 +353,14 @@ async function upsertProgram(
 export async function persistEligibilityEvidenceForSources(
   supabase: ReturnType<typeof createServiceClient>,
   programId: string,
-  sourceInputs: EligibilitySourceInput[]
+  sourceInputs: EligibilitySourceInput[],
+  dependencies: {
+    extract?: typeof extractEligibilityRequirements;
+    now?: () => Date;
+  } = {}
 ): Promise<void> {
+  const extract = dependencies.extract ?? extractEligibilityRequirements;
+  const now = dependencies.now ?? (() => new Date());
   const sources = prepareEligibilitySources(sourceInputs);
 
   if (sources.length === 0) return;
@@ -371,7 +377,7 @@ export async function persistEligibilityEvidenceForSources(
         content_text: source.contentText,
         content_sha256: source.contentSha256,
         extraction_status: 'extracted',
-        updated_at: new Date().toISOString(),
+        updated_at: now().toISOString(),
       })),
       { onConflict: 'program_id,source_key' }
     )
@@ -399,7 +405,7 @@ export async function persistEligibilityEvidenceForSources(
       model: UPSTAGE_MODEL,
       status: 'running',
       error_message: null,
-      started_at: new Date().toISOString(),
+      started_at: now().toISOString(),
       completed_at: null,
     }, { onConflict: 'program_id,source_fingerprint,extractor_version' })
     .select('id')
@@ -407,7 +413,7 @@ export async function persistEligibilityEvidenceForSources(
   if (runError) throw new Error(`extraction run creation failed: ${runError.message}`);
 
   try {
-    const extraction = await extractEligibilityRequirements(sources);
+    const extraction = await extract(sources);
     const sourceIds = new Map(
       (storedSources ?? []).map((source: { id: string; source_key: string }) => [source.source_key, source.id])
     );
@@ -444,7 +450,7 @@ export async function persistEligibilityEvidenceForSources(
 
     const { error: completionError } = await supabase
       .from('program_extraction_runs')
-      .update({ status: 'succeeded', completed_at: new Date().toISOString() })
+      .update({ status: 'succeeded', completed_at: now().toISOString() })
       .eq('id', run.id);
     if (completionError) throw new Error(`run completion failed: ${completionError.message}`);
   } catch (error) {
@@ -453,7 +459,7 @@ export async function persistEligibilityEvidenceForSources(
       .update({
         status: 'failed',
         error_message: error instanceof Error ? error.message.slice(0, 1000) : 'Unknown extraction error',
-        completed_at: new Date().toISOString(),
+        completed_at: now().toISOString(),
       })
       .eq('id', run.id);
     throw error;

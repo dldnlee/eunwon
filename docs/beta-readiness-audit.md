@@ -18,12 +18,12 @@ are applied and their new RLS/policies/indexes were inspected.
 
 Before inviting customers, complete the critical items below:
 
-1. Define and execute the reviewed batch/backfill operating policy before corpus-wide evidence
-   population. A three-program observed sample now passes, but the remaining program corpus has
-   not been reviewed or backfilled.
-2. Deploy the current repository revision, then run authenticated smoke tests on the production
-   domain for the complete primary journey and both email categories. Local UI verification does
-   not prove deployment or email delivery.
+1. Execute the reviewed [eligibility backfill policy](./eligibility-backfill-runbook.md) before
+   corpus-wide evidence population. A three-program observed sample now passes, but the remaining
+   program corpus has not been reviewed or backfilled.
+2. Run an authenticated primary-journey smoke and explicitly authorized test-recipient delivery
+   check. Deployment and the production cron authorization boundary are verified, but email delivery
+   was deliberately not triggered by this audit.
 3. Decide and mitigate the intentionally public `email_is_registered` account-enumeration surface
    (rate limit/abuse protection or remove live checking). The Supabase advisor flags its anonymous
    `SECURITY DEFINER` execution.
@@ -39,7 +39,7 @@ Before inviting customers, complete the critical items below:
 | Credible matching | Partial | Existing deterministic matching and AI explanations remain. A bounded three-program production evidence run produced 12 v2 requirements: 11 verified, one inferred, with every quote exactly present in its stored source. This sample does not establish corpus-wide evidence quality or populate all programs. |
 | Saved programs and tracker | Pass | Eight-stage atomic transition, ownership check, history, next action/date, outcomes, notes, and empty state are implemented. Anonymous RPC execution is explicitly revoked; authenticated execution remains intentional and ownership-checked. |
 | Preparation checklist | Pass, data-dependent | User-owned RLS table and API support source snapshots, completion, manual items, verified/inferred distinction, confidence, exact quote, source link, and resilient states. Manual items cannot claim stored citations. Automatic items are available for the sampled programs; other programs remain unavailable until their evidence is populated. |
-| Notification preferences | Pass (code) | Opportunity briefing, saved-program deadline reminders, and event reminders have independent controls and configurable lead times. Digest selection is capped/deduplicated and tested; deadline reminders are preserved. Production delivery still needs a post-deploy bounded smoke test. |
+| Notification preferences | Pass (code and route boundary) | Opportunity briefing, saved-program deadline reminders, and event reminders have independent controls and configurable lead times. Digest selection is capped/deduplicated and tested; deadline reminders are preserved. On 2026-08-23 the configured production route `/api/cron/notify-users` rejected an invalid token with 401. No email was sent during smoke testing; authorized test-recipient delivery remains. |
 | Events | Partial | 308 active production event rows exist; discovery, profile/category relevance, save, distinct reminders, source links, and ICS are implemented/tested. `event_sync_runs` has no rows yet, so the enhanced importer health path has not been observed in production. |
 | Calendar | Pass for provider-free phase | Event ICS and saved-program deadline ICS use all-day dates, exclusive end dates, stable IDs, Korean-safe line folding, canonical URLs, private/no-store authenticated download, and deterministic tests. Google OAuth sync remains a later consented phase. |
 | Sharing | Partial | Native Web Share with copy fallback exists. Program detail pages are authenticated and the current payload uses the browser URL, so the roadmap's canonical public-share promise is not complete. Never add match/profile/application details to shares. |
@@ -51,7 +51,8 @@ Before inviting customers, complete the critical items below:
 
 ## Verification record
 
-- Unit suite: 25 deterministic tests after adding the zero-result extraction failure case.
+- Unit suite: 28 deterministic tests, including cache reuse, failed-run retry, prior-evidence
+  preservation, and the zero-result extraction failure contract.
 - Static checks: Next ESLint and TypeScript pass.
 - Production build: Next.js 14.2.35 optimized build passes.
 - Supabase: migrations 011, 015, 016, and 017 applied in this phase; migrations 012-014 had already
@@ -63,9 +64,10 @@ Before inviting customers, complete the critical items below:
 
 ## Recommended next sequence
 
-1. Add mocked persistence retry/cache tests and define batch size, review sampling, failure threshold,
-   and rollback/stop rules before any broader T2 backfill.
-2. Production-domain smoke test for the primary journey and notification delivery after deployment.
+1. Run the first explicitly approved 25-record pilot under the documented T2 review/stop policy;
+   do not perform a corpus-wide backfill yet.
+2. Complete authenticated production-domain journey smoke and authorized test-recipient notification
+   delivery without involving customer accounts or unsolicited recipients.
 3. Close critical security/configuration gates above.
 4. T9 deterministic profile gap analysis, which can now consume normalized cited requirements.
 5. T20 admin read-only import/extraction/notification health so beta support can diagnose failures.
@@ -85,6 +87,10 @@ fingerprint/version cache as nightly import, and refuses a requested sample outs
 - Version 2 rerun: three succeeded runs, three source documents each, 12 requirements total,
   11 `verified` and one `inferred`; stored confidence 0.900–1.000. SQL validation found zero
   verified rows with a missing source, missing quote, or quote absent from source text.
+- Read-only revalidation after adding persistence coverage found the same latest state: 3/3 v2 runs
+  succeeded, 12 requirements (11 verified, one inferred), zero invalid verified citations, and zero
+  latest-run errors. Mocked persistence tests prove successful fingerprints skip extraction, a failed
+  same-version run can be retried, and extraction failure does not delete prior requirements.
 - Manual semantic samples: literal entity types such as 중소기업/소상공인 and explicit industry,
   business-age, financing, and factory-operation clauses were classified as verified. “관내” was
   normalized to a named municipality only as inferred. The previously empty 양주시 record now
@@ -98,3 +104,15 @@ Safe operator command (the environment file remains private and gitignored):
 `ELIGIBILITY_ENV_FILE=/absolute/private/.env.local npm run backfill:eligibility:sample -- 3`
 
 Do not raise the hard cap or loop this command as a substitute for the reviewed T2 batch process.
+
+## Production smoke record (2026-08-23)
+
+- `https://www.eunwon.com/`, `/login`, `/signup`, and `/contact` returned 200.
+- `/dashboard`, `/dashboard/saved`, and `/settings/notifications` returned 307 to `/login` with the
+  intended `next` parameter when unauthenticated.
+- An unknown route returned 404. `/events` also returned 404, consistent with the Events UI remaining
+  uncommitted/not production-released in this worktree.
+- `/api/cron/sync-events` and the configured `/api/cron/notify-users` route each rejected an
+  intentionally invalid bearer token with 401 and did not run. No notification job or email ran.
+- Authenticated mutation flows and delivery were not exercised: there was no reusable production
+  browser session, and this smoke deliberately avoided changing even designated test-account state.

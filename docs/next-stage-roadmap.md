@@ -48,7 +48,7 @@ path and deterministic evidence validator pass local tests. Existing production 
 normalized evidence on a subsequent successful program sync; no bulk AI backfill was invented or
 triggered as part of schema deployment.
 
-#### T2. Import-time HTML/text extraction and reuse — partially complete
+#### T2. Import-time HTML/text extraction and reuse — quality gate complete; pilot pending
 
 Dependencies: T1.
 
@@ -65,7 +65,11 @@ Implemented so far: API text sources are persisted and hashed; normalized eligib
 is cached by fingerprint/version; citations are validated before persistence; failed runs preserve
 prior successful data. Remaining: consolidate the older flattened enrichment call with this cache
 so unchanged notices skip all eligibility-related AI work (currently only the normalized,
-source-backed extraction is skipped), and add a mocked database importer test around retry/reuse.
+source-backed extraction is skipped). Mocked persistence coverage now proves successful cache reuse,
+retry of a non-successful same-version run, run-scoped cleanup, and preservation of prior facts when
+extraction fails. The reviewed batch/review/stop policy is documented in
+[`eligibility-backfill-runbook.md`](./eligibility-backfill-runbook.md). Remaining: run an explicitly
+approved 25-record pilot under that policy, and consolidate the older flattened enrichment call.
 
 Observed sample (2026-08-23): the bounded `backfill:eligibility:sample` command has a hard maximum
 of five programs and was run against three active production records using the existing private
@@ -78,6 +82,10 @@ were exact substrings of their stored sources, and the previously empty program 
 requirements. Confidence ranged from 0.900 to 1.000 and continues to mean extraction certainty,
 not applicant eligibility. This is evidence of a small observed path, not approval for bulk
 backfill or proof of quality across the full corpus.
+
+Read-only revalidation on 2026-08-23 confirmed the latest state remained 3/3 successful v2 runs,
+12 requirements (11 verified, one inferred), zero invalid verified citations, and zero latest-run
+errors. This closes the bounded sample quality follow-up, not the broader evidence-population task.
 
 #### T3. Notice-page and attachment acquisition
 
