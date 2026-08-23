@@ -8,6 +8,7 @@ import { LogoutButton } from '@/components/LogoutButton';
 const NAV_LINKS = [
   { href: '/dashboard', label: '대시보드' },
   { href: '/dashboard/saved', label: '저장한 사업' },
+  { href: '/events', label: '행사' },
   { href: '/settings/profile', label: '설정' },
 ];
 

@@ -29,6 +29,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <Link href="/dashboard/saved" className="rounded-sm py-xs transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2">
               저장한 사업
             </Link>
+            <Link href="/events" className="rounded-sm py-xs transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2">
+              행사
+            </Link>
             <Link href="/settings/profile" className="rounded-sm py-xs transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2">
               설정
             </Link>
