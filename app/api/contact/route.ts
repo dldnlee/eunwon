@@ -10,8 +10,6 @@ import { z } from 'zod';
 // honeypot check and Zod validation below instead of auth.
 export const dynamic = 'force-dynamic';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const contactSchema = z.object({
   name: z.string().trim().min(1, '이름을 입력해주세요.').max(100, '이름이 너무 길어요.'),
   email: z.string().trim().email('올바른 이메일 형식이 아니에요.'),
@@ -89,6 +87,9 @@ export async function POST(request: Request) {
   const { name, email, company, inquiryType, message } = parsed.data;
 
   try {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) throw new Error('RESEND_API_KEY is not configured');
+    const resend = new Resend(apiKey);
     await resend.emails.send({
       from: 'eunwon AI <alerts@eunwon.com>',
       to: process.env.CONTACT_EMAIL_TO || 'daniel@eunwon.com',
