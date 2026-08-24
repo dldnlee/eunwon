@@ -66,6 +66,8 @@ Before inviting customers, complete the critical items below:
 
 1. T16 application-summary PDF export is implemented and locally render-verified; continue T20
    read-only operations work while T17 alert thresholds and T18 feedback consent remain policy-gated.
+   T20 Stage A is deployed default-deny with zero assigned operators; Stage B requires named
+   operators plus support-access purpose/retention and step-up-authentication decisions.
 2. Complete authorized test-recipient notification delivery without involving customer accounts or
    unsolicited recipients.
 3. Review the existing dependency audit findings; leaked-password protection is an accepted beta

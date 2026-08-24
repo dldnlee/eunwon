@@ -548,6 +548,14 @@ Dependencies: authentication role model and named initial operators; T1-T4 for e
 payment-provider exception policy; data-retention and support-access policy. This workstream runs in
 parallel with late MVP work, but does not displace the immediate T5-T7 user journey.
 
+Implementation status (2026-08-25): Stage A's database foundation is deployed with four
+server-controlled roles, explicit capability checks, default-deny RLS/no direct authenticated table
+grants, automatic role-change audit events, and an append-only audit table. No operator was assigned
+and no customer/admin data page was enabled. The authenticated SECURITY DEFINER RPCs are intentionally
+limited to a boolean capability check and capability-gated audit insertion; both revoke anonymous
+execution and use a fixed search path. Stage B remains blocked on naming the initial operator(s),
+support-access purpose/retention policy, and a step-up-authentication decision.
+
 Staged rollout:
 
 1. **Stage A — access and audit foundation:** store admin roles separately from user-editable
