@@ -730,6 +730,7 @@ Evaluation and acceptance criteria:
 | D-025 | 2026-08-23 | Preparation items derived from eligibility rules are actions to gather proof, not a claim that a specific document guarantees eligibility. | Accepted; verified/inferred labels and exact citations remain visible. |
 | D-026 | 2026-08-23 | Snapshot checklist evidence at creation while retaining the source-requirement link; later extraction runs do not rewrite user completion. | Accepted; preserves an auditable application workspace. |
 | D-027 | 2026-08-23 | Anonymous users cannot execute the tracker transition RPC, and eligibility extraction mutations are explicitly service-role-only at both grant and RLS layers. | Accepted and verified in production. |
+| D-028 | 2026-08-24 | Signup must not expose whether an email address already has an account; remove the public auth lookup and use one completion response for new and existing addresses. | Accepted; migration 018 removed the SECURITY DEFINER RPC and the related advisor findings are cleared. |
 
 ## Resume checklist
 

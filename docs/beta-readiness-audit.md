@@ -1,6 +1,6 @@
 # Customer beta readiness audit
 
-Last updated: 2026-08-23
+Last updated: 2026-08-24
 
 Scope: repository and connected production Supabase inspection for the primary journey
 `profile → matches → save → prepare/apply → next action`, plus notifications, events, calendar,
@@ -21,31 +21,27 @@ Before inviting customers, complete the critical items below:
 1. Execute the reviewed [eligibility backfill policy](./eligibility-backfill-runbook.md) before
    corpus-wide evidence population. A three-program observed sample now passes, but the remaining
    program corpus has not been reviewed or backfilled.
-2. Run an authenticated primary-journey smoke and explicitly authorized test-recipient delivery
-   check. Deployment and the production cron authorization boundary are verified, but email delivery
-   was deliberately not triggered by this audit.
-3. Decide and mitigate the intentionally public `email_is_registered` account-enumeration surface
-   (rate limit/abuse protection or remove live checking). The Supabase advisor flags its anonymous
-   `SECURITY DEFINER` execution.
-4. Enable Supabase leaked-password protection in deployment configuration. This audit did not
+2. Run an explicitly authorized test-recipient delivery check for each notification category.
+   Authenticated production acceptance now passes, but email delivery was deliberately not triggered.
+3. Enable Supabase leaked-password protection in deployment configuration. This audit did not
    change external auth settings.
 
 ## Evidence matrix
 
 | Area | Status | Evidence and remaining work |
 |---|---|---|
-| Authentication and route protection | Pass with risk | App layout and pages re-check the session server-side. API mutations authenticate and scope ownership. Middleware matcher omits `/events`, but the Events server page still redirects unauthenticated users; add it for consistent early redirects. Public email lookup remains an enumeration risk. |
-| Onboarding and profile | Pass (code) | Signed-in onboarding/profile routes, validation, empty/error feedback, and responsive controls exist. Re-run production-domain smoke test after deployment. |
+| Authentication and route protection | Pass; one configuration gate | App layout and pages re-check the session server-side. API mutations authenticate and scope ownership. `/events` is covered by middleware and server authentication. Migration 018 removed the public `email_is_registered` SECURITY DEFINER RPC, and signup now returns the same non-enumerating completion state for new and existing addresses. Leaked-password protection remains disabled. |
+| Onboarding and profile | Pass | Signed-in production acceptance used the designated showcase account and loaded its complete company profile without errors. Form validation and responsive controls remain covered by code/UI review. |
 | Credible matching | Partial | Existing deterministic matching and AI explanations remain. A bounded three-program production evidence run produced 12 v2 requirements: 11 verified, one inferred, with every quote exactly present in its stored source. This sample does not establish corpus-wide evidence quality or populate all programs. |
 | Saved programs and tracker | Pass | Eight-stage atomic transition, ownership check, history, next action/date, outcomes, notes, and empty state are implemented. Anonymous RPC execution is explicitly revoked; authenticated execution remains intentional and ownership-checked. |
 | Preparation checklist | Pass, data-dependent | User-owned RLS table and API support source snapshots, completion, manual items, verified/inferred distinction, confidence, exact quote, source link, and resilient states. Manual items cannot claim stored citations. Automatic items are available for the sampled programs; other programs remain unavailable until their evidence is populated. |
 | Notification preferences | Pass (code and route boundary) | Opportunity briefing, saved-program deadline reminders, and event reminders have independent controls and configurable lead times. Digest selection is capped/deduplicated and tested; deadline reminders are preserved. On 2026-08-23 the configured production route `/api/cron/notify-users` rejected an invalid token with 401. No email was sent during smoke testing; authorized test-recipient delivery remains. |
-| Events | Partial | 308 active production event rows exist; discovery, profile/category relevance, save, distinct reminders, source links, and ICS are implemented/tested. `event_sync_runs` has no rows yet, so the enhanced importer health path has not been observed in production. |
+| Events | Pass for customer flow; importer observation pending | Authenticated production `/events` rendered 200 ranked events with profile reasons, filters, source links, save controls, and no console errors. Distinct reminders and owner-only ICS are implemented/tested. `event_sync_runs` still needs an observed enhanced importer run. |
 | Calendar | Pass for provider-free phase | Event ICS and saved-program deadline ICS use all-day dates, exclusive end dates, stable IDs, Korean-safe line folding, canonical URLs, private/no-store authenticated download, and deterministic tests. Google OAuth sync remains a later consented phase. |
 | Sharing | Partial | Native Web Share with copy fallback exists. Program detail pages are authenticated and the current payload uses the browser URL, so the roadmap's canonical public-share promise is not complete. Never add match/profile/application details to shares. |
 | Errors and empty states | Pass with follow-up | Main dashboard, saved list, events, checklist, forms, and not-found states are present. Checklist/API failures are user-safe. Contact/notification Resend construction was moved to request time so absent local secrets no longer break builds. Add route-level `error.tsx` boundaries for finer recovery. |
 | Accessibility and mobile | Pass for changed flows | UI uses semantic sections/lists, labels, live regions, focus rings, 44px mobile targets, keyboard-native controls, and responsive layouts. Checklist was inspected at 1280×900 and 390×844 with no overflow or console errors. Full WCAG assistive-technology regression remains a pre-broad-launch task. |
-| RLS and database security | Pass for new schema; legacy findings | Migrations 011-017 are live. New user-owned checklist has four owner policies and indexed FKs. Eligibility writes are service-only. Advisors still report older RLS init-plan performance warnings, public `email_is_registered`, intentional authenticated tracker SECURITY DEFINER execution, and leaked-password protection disabled. |
+| RLS and database security | Pass for new schema; legacy findings | Migrations 011-018 are live. New user-owned checklist has four owner policies and indexed FKs. Eligibility writes are service-only. The account-enumeration advisor warning is cleared. Advisors still report older RLS init-plan performance warnings, intentional authenticated tracker SECURITY DEFINER execution, and leaked-password protection disabled. |
 | Production build | Pass | `npm test`, `npm run lint`, `npx tsc --noEmit`, and `npm run build` pass after lazy Resend initialization. Build produced 27 pages/routes. |
 | Payments | Not exercised | Billing routes and recurring charge cron were not invoked or modified, per scope. Validate separately only with explicit financial test authorization and provider-safe fixtures. |
 
@@ -57,6 +53,8 @@ Before inviting customers, complete the critical items below:
 - Production build: Next.js 14.2.35 optimized build passes.
 - Supabase: migrations 011, 015, 016, and 017 applied in this phase; migrations 012-014 had already
   been applied. New table RLS/policies/indexes and function grants verified by catalog queries.
+- Security follow-up: migration 018 removed `email_is_registered`; catalog verification returned
+  zero matching functions and both anonymous/authenticated advisor warnings disappeared.
 - Advisor references:
   [database linter](https://supabase.com/docs/guides/database/database-linter),
   [RLS performance](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select),
@@ -66,9 +64,9 @@ Before inviting customers, complete the critical items below:
 
 1. Run the first explicitly approved 25-record pilot under the documented T2 review/stop policy;
    do not perform a corpus-wide backfill yet.
-2. Complete authenticated production-domain journey smoke and authorized test-recipient notification
-   delivery without involving customer accounts or unsolicited recipients.
-3. Close critical security/configuration gates above.
+2. Complete authorized test-recipient notification delivery without involving customer accounts or
+   unsolicited recipients.
+3. Enable Supabase leaked-password protection and review the existing dependency audit findings.
 4. T9 deterministic profile gap analysis, which can now consume normalized cited requirements.
 5. T20 admin read-only import/extraction/notification health so beta support can diagnose failures.
 
@@ -116,3 +114,18 @@ Do not raise the hard cap or loop this command as a substitute for the reviewed 
   intentionally invalid bearer token with 401 and did not run. No notification job or email ran.
 - Authenticated mutation flows and delivery were not exercised: there was no reusable production
   browser session, and this smoke deliberately avoided changing even designated test-account state.
+
+## Authenticated production acceptance (2026-08-24)
+
+- Signed in with the designated showcase test account; the populated business profile loaded 50
+  credible matches and AI-prioritized recommendations without console errors.
+- Saved the highest-ranked recommendation, observed the saved count update, opened the saved-program
+  workspace, transitioned it from `considering` to `preparing`, and persisted a test-only next action
+  and due date. The status history recorded the transition.
+- The chosen notice had no populated eligibility evidence, so the preparation checklist correctly
+  presented its explicit unavailable/empty state and manual-item path rather than inventing documents.
+- `/events` rendered 200 profile-ranked events with filter controls and source links. Notification
+  settings rendered independent opportunity, saved-program, and saved-event controls. No emails,
+  cron jobs, payments, or customer accounts were exercised.
+- Direct navigation to billing and document placeholder settings succeeded. Earlier RSC-prefetch
+  errors were stale/cumulative browser logs rather than repeatable route failures.
