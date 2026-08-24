@@ -209,7 +209,7 @@ Dependencies: T5; organization/account model decision.
 
 ### Phase 3 — Better decisions
 
-#### T9. Business-profile gap analysis
+#### T9. Business-profile gap analysis — complete in repository
 
 Dependencies: T1.
 
@@ -217,6 +217,15 @@ Dependencies: T1.
   `unknown`; include missing profile fields and cited program rules.
 - UI: actionable gaps, separating profile incompleteness from actual ineligibility.
 - Tests/acceptance: deterministic rule matrix; no unknown treated as eligible or ineligible.
+
+Implementation status (2026-08-25): the program detail page loads the latest successful current-
+version requirement set and evaluates only compatible structured fields. It distinguishes `met`,
+`not_met`, and `unknown`; inferred rules, unsupported exclusions, missing profile values, city-level
+rules against province-only profiles, and SME-class rules against legal-form profiles remain
+`unknown`. The UI separates missing profile data from mismatches, links to profile completion, shows
+verified/inferred provenance and citations, and states that the comparison is not an eligibility
+decision. The deterministic matrix covers satisfied, mismatched, missing, inferred, unsupported,
+numeric-unit, and incompatible-vocabulary cases.
 
 #### T10. Match confidence and explanation v2
 

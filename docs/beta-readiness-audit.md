@@ -31,7 +31,7 @@ Before inviting customers, complete the critical items below:
 |---|---|---|
 | Authentication and route protection | Pass; one configuration gate | App layout and pages re-check the session server-side. API mutations authenticate and scope ownership. `/events` is covered by middleware and server authentication. Migration 018 removed the public `email_is_registered` SECURITY DEFINER RPC, and signup now returns the same non-enumerating completion state for new and existing addresses. Leaked-password protection remains disabled. |
 | Onboarding and profile | Pass | Signed-in production acceptance used the designated showcase account and loaded its complete company profile without errors. Form validation and responsive controls remain covered by code/UI review. |
-| Credible matching | Partial; gate sample passes | Existing deterministic matching and AI explanations remain. The v2 pilot exposed semantic defects; v4 now deterministically uses the exact citation as verified display text, rejects invented/procedural exclusions, and passed a targeted five-program gate. No broad backfill is authorized until a new controlled pilot passes. |
+| Credible matching | Pass for populated v4 evidence; coverage partial | Existing deterministic matching and AI explanations remain. The v2 pilot exposed semantic defects; v4 uses exact citations for verified display and passed a targeted gate. T9 now compares compatible profile fields with met/not-met/unknown states and never converts missing/inferred/unsupported evidence into an eligibility verdict. Evidence coverage is still limited pending a controlled pilot. |
 | Saved programs and tracker | Pass | Eight-stage atomic transition, ownership check, history, next action/date, outcomes, notes, and empty state are implemented. Anonymous RPC execution is explicitly revoked; authenticated execution remains intentional and ownership-checked. |
 | Preparation checklist | Pass, data-dependent | User-owned RLS table and API support source snapshots, completion, manual items, verified/inferred distinction, confidence, exact quote, source link, and resilient states. Manual items cannot claim stored citations. Automatic items are available for the sampled programs; other programs remain unavailable until their evidence is populated. |
 | Notification preferences | Pass (code and route boundary) | Opportunity briefing, saved-program deadline reminders, and event reminders have independent controls and configurable lead times. Digest selection is capped/deduplicated and tested; deadline reminders are preserved. On 2026-08-23 the configured production route `/api/cron/notify-users` rejected an invalid token with 401. No email was sent during smoke testing; authorized test-recipient delivery remains. |
@@ -61,8 +61,8 @@ Before inviting customers, complete the critical items below:
 
 ## Recommended next sequence
 
-1. Implement T9 deterministic profile gap analysis using only v4 verified facts and explicitly
-   uncertain inferred facts; do not perform a corpus-wide backfill yet.
+1. Implement T10 match confidence/explanation v2 using T9 evidence coverage and freshness; do not
+   perform a corpus-wide backfill yet.
 2. Complete authorized test-recipient notification delivery without involving customer accounts or
    unsolicited recipients.
 3. Review the existing dependency audit findings; leaked-password protection is an accepted beta

@@ -7,8 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SaveToggleButton } from '@/components/SaveToggleButton';
 import { ShareButton } from '@/components/ShareButton';
 import { MatchExplanation } from '@/components/MatchExplanation';
+import { EligibilityGapAnalysis } from '@/components/EligibilityGapAnalysis';
 import { TOSS_ENABLED } from '@/lib/payments';
 import { findDuplicateBenefitConflict } from '@/lib/matching';
+import {
+  evaluateEligibilityGaps,
+  type EligibilityGapRequirement,
+} from '@/lib/eligibility/gap-analysis';
+import { ELIGIBILITY_EXTRACTOR_VERSION } from '@/lib/eligibility/extraction';
+import type { Profile } from '@/lib/types';
 import { isProUser } from '@/lib/trial';
 import { formatKoreanDate } from '@/lib/utils';
 import { ExternalLink, AlertTriangle } from 'lucide-react';
@@ -23,7 +30,7 @@ export default async function ProgramDetailPage({ params }: { params: { id: stri
 
   const [{ data: program }, { data: profile }, { data: savedRow }] = await Promise.all([
     supabase.from('programs').select('*').eq('id', params.id).maybeSingle(),
-    supabase.from('profiles').select('subscription').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
     supabase
       .from('saved_programs')
       .select('id')
@@ -36,6 +43,44 @@ export default async function ProgramDetailPage({ params }: { params: { id: stri
 
   const isPro = !!profile && isProUser(profile.subscription, user.created_at);
   const duplicateConflict = await findDuplicateBenefitConflict(supabase, user.id, program);
+  const { data: extractionRun } = await supabase
+    .from('program_extraction_runs')
+    .select('id')
+    .eq('program_id', program.id)
+    .eq('extractor_version', ELIGIBILITY_EXTRACTOR_VERSION)
+    .eq('status', 'succeeded')
+    .order('completed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { data: requirementRows } = extractionRun
+    ? await supabase
+        .from('program_eligibility_requirements')
+        .select('id,requirement_type,operator,value_json,normalized_text,verification,confidence,evidence_quote,program_source_documents(title,source_url)')
+        .eq('extraction_run_id', extractionRun.id)
+        .order('created_at', { ascending: true })
+    : { data: null };
+
+  const requirements = (requirementRows ?? []).map((row) => {
+    const joinedSource = Array.isArray(row.program_source_documents)
+      ? row.program_source_documents[0] ?? null
+      : row.program_source_documents;
+    return {
+      id: row.id,
+      requirementType: row.requirement_type,
+      operator: row.operator,
+      value: row.value_json,
+      normalizedText: row.normalized_text,
+      verification: row.verification,
+      confidence: row.confidence,
+      evidenceQuote: row.evidence_quote,
+      sourceTitle: joinedSource?.title ?? null,
+      sourceUrl: joinedSource?.source_url ?? null,
+    } as EligibilityGapRequirement;
+  });
+  const gapAnalysis = profile
+    ? evaluateEligibilityGaps(requirements, profile as Profile)
+    : { status: 'unavailable' as const, items: [], counts: { met: 0, notMet: 0, unknown: 0 } };
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-lg">
@@ -73,6 +118,8 @@ export default async function ProgramDetailPage({ params }: { params: { id: stri
       </div>
 
       {isPro && <MatchExplanation programId={program.id} />}
+
+      <EligibilityGapAnalysis analysis={gapAnalysis} />
 
       <Card>
         <CardHeader>
