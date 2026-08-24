@@ -26,6 +26,11 @@ async function main() {
   }
 
   const supabase = createServiceClient();
+  const targetedIds = process.argv.find((arg) => arg.startsWith('--program-ids='))
+    ?.slice('--program-ids='.length).split(',').map((id) => id.trim()).filter(Boolean) ?? [];
+  if (targetedIds.length > 5 || (targetedIds.length > 0 && targetedIds.length !== requested)) {
+    throw new Error('program-ids must contain exactly the requested 1–5 program IDs');
+  }
   const { data: completed, error: completedError } = await supabase
   .from('program_extraction_runs')
   .select('program_id')
@@ -34,19 +39,24 @@ async function main() {
   if (completedError) throw new Error(`Could not inspect extraction state: ${completedError.message}`);
 
   const completedIds = new Set((completed ?? []).map((row) => row.program_id));
-  const { data: candidates, error: candidateError } = await supabase
+  let candidateQuery = supabase
   .from('programs')
   .select('id,title,description,target_raw,apply_method,detail_url,updated_at')
   .eq('is_active', true)
   .not('description', 'is', null)
-  .not('target_raw', 'is', null)
-  .order('updated_at', { ascending: false })
-  .limit(Math.max(25, requested * 10));
+  .not('target_raw', 'is', null);
+  candidateQuery = targetedIds.length > 0
+    ? candidateQuery.in('id', targetedIds)
+    : candidateQuery.order('updated_at', { ascending: false }).limit(Math.max(25, requested * 10));
+  const { data: candidates, error: candidateError } = await candidateQuery;
   if (candidateError) throw new Error(`Could not select sample programs: ${candidateError.message}`);
 
   const sample = (candidates ?? [])
-  .filter((program) => !completedIds.has(program.id))
+  .filter((program) => targetedIds.length > 0 || !completedIds.has(program.id))
   .filter((program) => program.description?.trim() && program.target_raw?.trim())
+  .sort((a, b) => targetedIds.length > 0
+    ? targetedIds.indexOf(a.id) - targetedIds.indexOf(b.id)
+    : 0)
   .slice(0, requested);
   if (sample.length !== requested) {
     throw new Error(`Only ${sample.length} eligible unprocessed sample programs were available`);

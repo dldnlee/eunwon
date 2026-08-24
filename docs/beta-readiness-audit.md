@@ -18,8 +18,8 @@ are applied and their new RLS/policies/indexes were inspected.
 
 Before inviting customers, complete the critical items below:
 
-1. Tighten and revalidate the eligibility extraction contract before corpus-wide evidence
-   population. The 25-program pilot completed safely but failed its semantic quality gate.
+1. Keep corpus-wide evidence population stopped until a new controlled pilot passes. Extractor v4
+   now passes the targeted five-program gate that addressed the v2 pilot defects.
 2. Run an explicitly authorized test-recipient delivery check for each notification category.
    Authenticated production acceptance now passes, but email delivery was deliberately not triggered.
 3. Revisit Supabase leaked-password protection before broad launch. The owner explicitly chose not
@@ -31,7 +31,7 @@ Before inviting customers, complete the critical items below:
 |---|---|---|
 | Authentication and route protection | Pass; one configuration gate | App layout and pages re-check the session server-side. API mutations authenticate and scope ownership. `/events` is covered by middleware and server authentication. Migration 018 removed the public `email_is_registered` SECURITY DEFINER RPC, and signup now returns the same non-enumerating completion state for new and existing addresses. Leaked-password protection remains disabled. |
 | Onboarding and profile | Pass | Signed-in production acceptance used the designated showcase account and loaded its complete company profile without errors. Form validation and responsive controls remain covered by code/UI review. |
-| Credible matching | Partial; quality gate stopped | Existing deterministic matching and AI explanations remain. The 25-program v2 pilot produced 98 requirements with reproducible citation offsets, but semantic review found some verified normalizations broader than their quotes and noisy inferred exclusions. No broad backfill is authorized. |
+| Credible matching | Partial; gate sample passes | Existing deterministic matching and AI explanations remain. The v2 pilot exposed semantic defects; v4 now deterministically uses the exact citation as verified display text, rejects invented/procedural exclusions, and passed a targeted five-program gate. No broad backfill is authorized until a new controlled pilot passes. |
 | Saved programs and tracker | Pass | Eight-stage atomic transition, ownership check, history, next action/date, outcomes, notes, and empty state are implemented. Anonymous RPC execution is explicitly revoked; authenticated execution remains intentional and ownership-checked. |
 | Preparation checklist | Pass, data-dependent | User-owned RLS table and API support source snapshots, completion, manual items, verified/inferred distinction, confidence, exact quote, source link, and resilient states. Manual items cannot claim stored citations. Automatic items are available for the sampled programs; other programs remain unavailable until their evidence is populated. |
 | Notification preferences | Pass (code and route boundary) | Opportunity briefing, saved-program deadline reminders, and event reminders have independent controls and configurable lead times. Digest selection is capped/deduplicated and tested; deadline reminders are preserved. On 2026-08-23 the configured production route `/api/cron/notify-users` rejected an invalid token with 401. No email was sent during smoke testing; authorized test-recipient delivery remains. |
@@ -61,8 +61,8 @@ Before inviting customers, complete the critical items below:
 
 ## Recommended next sequence
 
-1. Tighten the extraction prompt/validator for semantic entailment and requirement typing, bump the
-   version, and repeat the 1–5 gate sample; do not perform a corpus-wide backfill yet.
+1. Implement T9 deterministic profile gap analysis using only v4 verified facts and explicitly
+   uncertain inferred facts; do not perform a corpus-wide backfill yet.
 2. Complete authorized test-recipient notification delivery without involving customer accounts or
    unsolicited recipients.
 3. Review the existing dependency audit findings; leaked-password protection is an accepted beta
@@ -122,6 +122,14 @@ an application submission instruction mis-typed as an exclusion, and inferred ex
 merely negated already-recorded positive rules. These rows remain review evidence, not approved
 matching facts. Broad/controlled backfill stays stopped pending a tightened, versioned extraction
 contract and a new 1–5 gate sample.
+
+Extractor v4 follow-up (2026-08-25): the validator now rejects inferred exclusions, rejects
+application-procedure exclusions, and accepts exclusions only when the exact quote contains explicit
+negative language. For every verified requirement, the user-facing normalized text is replaced with
+the exact evidence quote so the displayed claim cannot exceed its citation. A targeted rerun of the
+five known-defect programs produced 15 requirements (14 verified, one inferred), zero exclusions,
+zero invalid offsets, and zero verified rows whose display text differed from the evidence quote.
+This passes the 1–5 gate sample; a new controlled pilot remains required before broad population.
 
 ## Production smoke record (2026-08-23)
 

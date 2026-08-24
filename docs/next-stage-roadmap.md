@@ -48,7 +48,7 @@ path and deterministic evidence validator pass local tests. Existing production 
 normalized evidence on a subsequent successful program sync; no bulk AI backfill was invented or
 triggered as part of schema deployment.
 
-#### T2. Import-time HTML/text extraction and reuse — pilot executed; semantic gate stopped
+#### T2. Import-time HTML/text extraction and reuse — v4 gate passes; controlled pilot pending
 
 Dependencies: T1.
 
@@ -101,6 +101,13 @@ to exceed the meaning of their quote, a submission instruction was classified as
 some inferred exclusions redundantly negated positive rules. Therefore no larger backfill is
 authorized. Next T2 action is a version bump with stricter entailment/type rules followed by a new
 1–5 gate sample; the existing pilot rows are retained as review evidence.
+
+Version 4 follow-up (2026-08-25): inferred and procedural exclusions are deterministically dropped;
+explicit exclusions require a verified quote with negative language; and verified display text is
+the exact evidence quote, preventing a model summary from broadening a cited statement. The targeted
+five-program rerun of known defects produced 15 requirements (14 verified, one inferred), no
+exclusions, no invalid offsets, and no verified display/citation differences. The gate sample passes.
+Run a newly approved controlled pilot before any broad population; v2/v3 rows remain audit evidence.
 
 #### T3. Notice-page and attachment acquisition
 
@@ -748,6 +755,7 @@ Evaluation and acceptance criteria:
 | D-028 | 2026-08-24 | Signup must not expose whether an email address already has an account; remove the public auth lookup and use one completion response for new and existing addresses. | Accepted; migration 018 removed the SECURITY DEFINER RPC and the related advisor findings are cleared. |
 | D-029 | 2026-08-24 | Do not enable Supabase leaked-password protection for the focused beta. | Owner decision accepted as a documented configuration risk; revisit before broad launch. |
 | D-030 | 2026-08-24 | Limit the first eligibility pilot to 25 programs and a maximum KRW 10,000 spend, enforced operationally with a conservative 250,000-token ceiling and stop rules. | Accepted; observed usage was 24,964 tokens, and bulk work remains stopped after the semantic gate failed. |
+| D-031 | 2026-08-25 | A verified requirement's user-facing text is the exact stored evidence quote; normalized model wording is allowed only for inferred content. | Accepted and validated by the v4 targeted gate; favors trustworthy display over aggressive normalization. |
 
 ## Resume checklist
 

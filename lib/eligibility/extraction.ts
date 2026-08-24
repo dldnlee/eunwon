@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { generateText, parseJsonResponse, UPSTAGE_MODEL } from '../ai/client';
 
-export const ELIGIBILITY_EXTRACTOR_VERSION = 'eligibility-v2';
+export const ELIGIBILITY_EXTRACTOR_VERSION = 'eligibility-v4';
 
 export const REQUIREMENT_TYPES = [
   'entity_type', 'region', 'business_age', 'employee_count', 'annual_revenue',
@@ -107,11 +107,20 @@ export function validateEligibilityRequirements(
       ? 'verified'
       : 'inferred';
 
+    // v3 precision guardrails: an exclusion must be explicitly stated, not manufactured by
+    // negating a positive rule. Application instructions are not exclusion criteria.
+    if (item.requirement_type === 'exclusion') {
+      if (verification !== 'verified' || sourceKey === 'application') continue;
+      if (!quote || !/(제외|불가|제한|금지|결격|해당하지 않|지원하지 않|신청할 수 없)/.test(quote)) continue;
+    }
+
     validated.push({
       requirementType: item.requirement_type,
       operator: item.operator,
       value: item.value,
-      normalizedText: item.normalized_text,
+      // A verified user-facing claim must not be broader than its citation. Using the exact quote
+      // makes that boundary deterministic; model-normalized language is retained only as inferred.
+      normalizedText: verification === 'verified' && quote ? quote : item.normalized_text,
       sourceKey: source ? sourceKey : null,
       evidenceQuote: evidenceIsValid ? quote : null,
       evidenceStart: evidenceIsValid ? start : null,
@@ -154,6 +163,16 @@ export async function extractEligibilityRequirements(
 - confidence 1.0을 기본값처럼 쓰지 마세요. 원문 표현과 정규화가 사실상 동일하고
   문맥에 모호성이 전혀 없을 때만 1.0을 사용하세요.
 - 홍보 문구, 지원 내용, 신청 절차는 자격 조건으로 추출하지 마세요.
+- 신청서 제출, 접수, 평가, 신청기간, 첨부양식 같은 절차를 exclusion이나 자격으로
+  추출하지 마세요.
+- exclusion은 원문에 제외·불가·제한·금지·결격 등 부정 조건이 명시된 경우에만
+  추출하세요. 긍정 조건(예: 중소기업, 7년 이내)을 반대로 바꾸어 별도 exclusion을
+  만들지 마세요.
+- verified의 normalized_text에 있는 모든 한정(지역, 주소 기준, 사업장 유형, 업종,
+  기간, 접속사)은 evidence_quote가 직접 뒷받침해야 합니다. 일부만 인용되면 조건을
+  각각 나누거나 inferred로 표시하세요.
+- evidence_quote가 '중소기업'처럼 일반 분류만 말하면 주소·사업자등록증·지역 같은
+  세부사항을 normalized_text에 덧붙이지 마세요.
 - source_key가 target인 비어 있지 않은 지원 대상 문구는 최소 한 번 검토하고, 중소기업,
   소상공인, 법인 같은 명시적 대상 분류가 있으면 반드시 요구조건으로 추출하세요.
 

@@ -38,6 +38,7 @@ test('verified requirements retain exact source offsets', () => {
 
   assert.equal(requirement.verification, 'verified');
   assert.equal(requirement.evidenceQuote, '창업 7년 이내');
+  assert.equal(requirement.normalizedText, '창업 7년 이내');
   assert.equal(
     sources[0].contentText.slice(requirement.evidenceStart!, requirement.evidenceEnd!),
     requirement.evidenceQuote
@@ -77,6 +78,34 @@ test('requirements without a persistable value are discarded', () => {
   ], sources);
 
   assert.deepEqual(requirements, []);
+});
+
+test('v4 discards invented and procedural exclusions', () => {
+  const requirements = validateEligibilityRequirements([
+    {
+      requirement_type: 'exclusion', operator: 'excludes', value: '중소기업 아님',
+      normalized_text: '중소기업이 아니면 제외', source_key: 'target', evidence_quote: '중소기업',
+      verification: 'inferred', confidence: 0.8,
+    },
+    {
+      requirement_type: 'exclusion', operator: 'excludes', value: '서류 미제출',
+      normalized_text: '신청서류 미제출 제외', source_key: 'application', evidence_quote: '신청서류를 제출한 신청건에 한해 평가',
+      verification: 'verified', confidence: 0.9,
+    },
+    {
+      requirement_type: 'exclusion', operator: 'excludes', value: '휴폐업',
+      normalized_text: '휴·폐업 기업 제외', source_key: 'summary', evidence_quote: '휴·폐업 기업은 지원 제외',
+      verification: 'verified', confidence: 0.95,
+    },
+  ], [
+    ...sources,
+    { sourceKey: 'application', sourceType: 'api_text', contentText: '신청서류를 제출한 신청건에 한해 평가', contentSha256: 'b' },
+    { sourceKey: 'summary', sourceType: 'api_text', contentText: '휴·폐업 기업은 지원 제외', contentSha256: 'c' },
+  ]);
+
+  assert.equal(requirements.length, 1);
+  assert.equal(requirements[0].normalizedText, '휴·폐업 기업은 지원 제외');
+  assert.equal(requirements[0].verification, 'verified');
 });
 
 test('AI extraction response passes through deterministic evidence validation', async () => {
