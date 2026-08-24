@@ -282,7 +282,7 @@ the prior program, quotes and links the clause, and states that the result is no
 eligibility conclusion. Tests cover evidence-backed overlap, ambiguous unrelated history, ordinary
 non-duplicate exclusions, inferred clauses, and the absence of a cited rule.
 
-#### T13. Similar-program recommendations
+#### T13. Similar-program recommendations — complete in repository
 
 Dependencies: T10.
 
@@ -290,6 +290,14 @@ Dependencies: T10.
   similarity; exclude closed/current program and explain differences.
 - UI: similar programs on detail and closed-program replacement state.
 - Tests/acceptance: all recommendations pass hard filters; ranking evaluation set is versioned.
+
+Implementation status (2026-08-25): detail pages retrieve up to 100 candidates through the existing
+hard region/entity/age/employee/revenue/deadline eligibility query, then exclude the current,
+inactive, and closed programs before deterministic ranking. Category, funding type, agency, region,
+target type, structured tags, and title terms contribute to a capped similarity score. Cards explain
+shared signals and concrete differences, link directly to each program, and label similarity as
+distinct from eligibility. The checked-in deterministic fixtures are the initial versioned ranking
+evaluation set; outcome-based tuning remains dependent on T15.
 
 ### Phase 4 — Assisted application
 

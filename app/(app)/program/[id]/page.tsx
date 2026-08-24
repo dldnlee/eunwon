@@ -10,13 +10,15 @@ import { MatchExplanation } from '@/components/MatchExplanation';
 import { EligibilityGapAnalysis } from '@/components/EligibilityGapAnalysis';
 import { MatchConfidence } from '@/components/MatchConfidence';
 import { DuplicateBenefitNotice } from '@/components/DuplicateBenefitNotice';
+import { SimilarPrograms } from '@/components/SimilarPrograms';
 import { TOSS_ENABLED } from '@/lib/payments';
 import { findDuplicateBenefitConflict } from '@/lib/matching';
 import { loadEligibilityGapAnalysis } from '@/lib/eligibility/load-gap-analysis';
 import { calculateMatchConfidence } from '@/lib/match-confidence';
-import type { Profile } from '@/lib/types';
+import type { Profile, Program } from '@/lib/types';
 import { isProUser } from '@/lib/trial';
 import { formatKoreanDate } from '@/lib/utils';
+import { getSimilarPrograms } from '@/lib/similar-programs';
 import { ExternalLink } from 'lucide-react';
 
 export default async function ProgramDetailPage({ params }: { params: { id: string } }) {
@@ -41,7 +43,10 @@ export default async function ProgramDetailPage({ params }: { params: { id: stri
   if (!program) notFound();
 
   const isPro = !!profile && isProUser(profile.subscription, user.created_at);
-  const duplicateConflict = await findDuplicateBenefitConflict(supabase, user.id, program);
+  const [duplicateConflict, similarPrograms] = await Promise.all([
+    findDuplicateBenefitConflict(supabase, user.id, program),
+    profile ? getSimilarPrograms(supabase, program as Program, profile as Profile) : Promise.resolve([]),
+  ]);
   const loadedGaps = profile
     ? await loadEligibilityGapAnalysis(supabase, program.id, profile as Profile)
     : { extractionRun: null, analysis: { status: 'unavailable' as const, items: [], counts: { met: 0, notMet: 0, unknown: 0 } } };
@@ -179,6 +184,8 @@ export default async function ProgramDetailPage({ params }: { params: { id: stri
           </CardContent>
         </Card>
       )}
+
+      <SimilarPrograms recommendations={similarPrograms} />
 
       {isPro ? (
         <Card className="border-dashed">

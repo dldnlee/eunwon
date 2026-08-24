@@ -39,6 +39,7 @@ Before inviting customers, complete the critical items below:
 | Calendar | Pass for provider-free phase | Event ICS and saved-program deadline ICS use all-day dates, exclusive end dates, stable IDs, Korean-safe line folding, canonical URLs, private/no-store authenticated download, and deterministic tests. Google OAuth sync remains a later consented phase. |
 | Program comparison | Pass | Signed-in users can select 2–4 dashboard programs and compare eligibility state, evidence quality, benefits, deadlines, preparation, application progress, and next action. The URL preserves valid selection IDs, user-owned progress remains RLS-scoped, missing data is explicit, and mobile uses a stacked fallback. |
 | Duplicate-benefit detection | Pass where v4 restriction evidence exists | Same-category history no longer creates a warning by itself. A verified cited duplicate-benefit clause is required; overlap determines possible-conflict versus confirmation-needed language. Prior application history is owner-scoped, the cited source is shown, and no legal conclusion is asserted. Programs without v4 restriction evidence show no invented warning. |
+| Similar programs | Pass | Program detail recommendations first pass the dashboard's hard eligibility/deadline filters, then exclude the current/inactive/closed program and rank structured similarity. Cards state why they are similar, highlight differences, and do not present similarity as eligibility. |
 | Sharing | Partial | Native Web Share with copy fallback exists. Program detail pages are authenticated and the current payload uses the browser URL, so the roadmap's canonical public-share promise is not complete. Never add match/profile/application details to shares. |
 | Errors and empty states | Pass with follow-up | Main dashboard, saved list, events, checklist, forms, and not-found states are present. Checklist/API failures are user-safe. Contact/notification Resend construction was moved to request time so absent local secrets no longer break builds. Add route-level `error.tsx` boundaries for finer recovery. |
 | Accessibility and mobile | Pass for changed flows | UI uses semantic sections/lists, labels, live regions, focus rings, 44px mobile targets, keyboard-native controls, and responsive layouts. Checklist was inspected at 1280×900 and 390×844 with no overflow or console errors. Full WCAG assistive-technology regression remains a pre-broad-launch task. |
@@ -63,8 +64,8 @@ Before inviting customers, complete the critical items below:
 
 ## Recommended next sequence
 
-1. Implement T13 similar-program recommendations using hard-filtered candidates and T10 quality
-   signals; do not perform a corpus-wide backfill yet.
+1. Implement T14 new/better-match alerts only after defining the explicit threshold/consent policy;
+   meanwhile continue dependency-ready T15 outcome feedback and T20 read-only operations work.
 2. Complete authorized test-recipient notification delivery without involving customer accounts or
    unsolicited recipients.
 3. Review the existing dependency audit findings; leaked-password protection is an accepted beta
