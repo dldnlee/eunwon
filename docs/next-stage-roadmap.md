@@ -264,7 +264,7 @@ deadline, checklist progress, application stage, and next action are compared. M
 say `확인 필요`; a known mismatch remains authoritative; external apply links are protocol-checked.
 Deterministic tests cover URL bounds/deduplication and mismatch/unknown projection semantics.
 
-#### T12. Duplicate-benefit detection v2
+#### T12. Duplicate-benefit detection v2 — complete in repository
 
 Dependencies: T1, T5.
 
@@ -272,6 +272,15 @@ Dependencies: T1, T5.
   against selected/submitted applications; replace the current category-only heuristic.
 - UI: warning with source and “needs confirmation”, never a definitive legal conclusion.
 - Tests/acceptance: known conflict/non-conflict fixtures and conservative ambiguous result.
+
+Implementation status (2026-08-25): the prior same-category-only warning has been removed. Detection
+now requires a current-version, verified exclusion clause containing explicit duplicate/same/similar
+benefit language and compares it with the signed-in user's submitted-through-selected applications.
+Agency, category, funding type, and title overlap affect whether the result is `possible_conflict` or
+`needs_confirmation`; they cannot create a warning without cited restriction evidence. The UI names
+the prior program, quotes and links the clause, and states that the result is not a legal or
+eligibility conclusion. Tests cover evidence-backed overlap, ambiguous unrelated history, ordinary
+non-duplicate exclusions, inferred clauses, and the absence of a cited rule.
 
 #### T13. Similar-program recommendations
 

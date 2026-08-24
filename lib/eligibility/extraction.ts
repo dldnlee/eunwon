@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { generateText, parseJsonResponse, UPSTAGE_MODEL } from '../ai/client';
+import { ELIGIBILITY_EXTRACTOR_VERSION } from './version';
 
-export const ELIGIBILITY_EXTRACTOR_VERSION = 'eligibility-v4';
+export { ELIGIBILITY_EXTRACTOR_VERSION } from './version';
 
 export const REQUIREMENT_TYPES = [
   'entity_type', 'region', 'business_age', 'employee_count', 'annual_revenue',

@@ -9,6 +9,7 @@ import { ShareButton } from '@/components/ShareButton';
 import { MatchExplanation } from '@/components/MatchExplanation';
 import { EligibilityGapAnalysis } from '@/components/EligibilityGapAnalysis';
 import { MatchConfidence } from '@/components/MatchConfidence';
+import { DuplicateBenefitNotice } from '@/components/DuplicateBenefitNotice';
 import { TOSS_ENABLED } from '@/lib/payments';
 import { findDuplicateBenefitConflict } from '@/lib/matching';
 import { loadEligibilityGapAnalysis } from '@/lib/eligibility/load-gap-analysis';
@@ -16,7 +17,7 @@ import { calculateMatchConfidence } from '@/lib/match-confidence';
 import type { Profile } from '@/lib/types';
 import { isProUser } from '@/lib/trial';
 import { formatKoreanDate } from '@/lib/utils';
-import { ExternalLink, AlertTriangle } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 
 export default async function ProgramDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -90,15 +91,7 @@ export default async function ProgramDetailPage({ params }: { params: { id: stri
         </p>
       </div>
 
-      {duplicateConflict && (
-        <div className="flex items-start gap-sm rounded-md border border-hairline bg-surface-soft p-md text-body-sm text-charcoal">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-error" aria-hidden="true" />
-          <p>
-            이미 수혜받은 &ldquo;{duplicateConflict.title}&rdquo;과 같은 분야({program.category})의 지원사업이에요 —
-            중복수혜 제한에 해당될 수 있으니 신청 전 반드시 확인해보세요.
-          </p>
-        </div>
-      )}
+      {duplicateConflict && <DuplicateBenefitNotice evidence={duplicateConflict} />}
 
       <div className="flex flex-wrap gap-sm">
         <SaveToggleButton userId={user.id} programId={program.id} initialSaved={!!savedRow} />

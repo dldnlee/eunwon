@@ -38,6 +38,7 @@ Before inviting customers, complete the critical items below:
 | Events | Pass for customer flow; importer observation pending | Authenticated production `/events` rendered 200 ranked events with profile reasons, filters, source links, save controls, and no console errors. Distinct reminders and owner-only ICS are implemented/tested. `event_sync_runs` still needs an observed enhanced importer run. |
 | Calendar | Pass for provider-free phase | Event ICS and saved-program deadline ICS use all-day dates, exclusive end dates, stable IDs, Korean-safe line folding, canonical URLs, private/no-store authenticated download, and deterministic tests. Google OAuth sync remains a later consented phase. |
 | Program comparison | Pass | Signed-in users can select 2–4 dashboard programs and compare eligibility state, evidence quality, benefits, deadlines, preparation, application progress, and next action. The URL preserves valid selection IDs, user-owned progress remains RLS-scoped, missing data is explicit, and mobile uses a stacked fallback. |
+| Duplicate-benefit detection | Pass where v4 restriction evidence exists | Same-category history no longer creates a warning by itself. A verified cited duplicate-benefit clause is required; overlap determines possible-conflict versus confirmation-needed language. Prior application history is owner-scoped, the cited source is shown, and no legal conclusion is asserted. Programs without v4 restriction evidence show no invented warning. |
 | Sharing | Partial | Native Web Share with copy fallback exists. Program detail pages are authenticated and the current payload uses the browser URL, so the roadmap's canonical public-share promise is not complete. Never add match/profile/application details to shares. |
 | Errors and empty states | Pass with follow-up | Main dashboard, saved list, events, checklist, forms, and not-found states are present. Checklist/API failures are user-safe. Contact/notification Resend construction was moved to request time so absent local secrets no longer break builds. Add route-level `error.tsx` boundaries for finer recovery. |
 | Accessibility and mobile | Pass for changed flows | UI uses semantic sections/lists, labels, live regions, focus rings, 44px mobile targets, keyboard-native controls, and responsive layouts. Checklist was inspected at 1280×900 and 390×844 with no overflow or console errors. Full WCAG assistive-technology regression remains a pre-broad-launch task. |
@@ -62,9 +63,8 @@ Before inviting customers, complete the critical items below:
 
 ## Recommended next sequence
 
-1. Implement T12 duplicate-benefit detection v2 using explicit program rules and user outcomes,
-   replacing the current same-category warning where evidence exists; do not perform a corpus-wide
-   backfill yet.
+1. Implement T13 similar-program recommendations using hard-filtered candidates and T10 quality
+   signals; do not perform a corpus-wide backfill yet.
 2. Complete authorized test-recipient notification delivery without involving customer accounts or
    unsolicited recipients.
 3. Review the existing dependency audit findings; leaked-password protection is an accepted beta

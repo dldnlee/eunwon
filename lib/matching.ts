@@ -1,5 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Profile, Program } from '@/lib/types';
+import { ELIGIBILITY_EXTRACTOR_VERSION } from '@/lib/eligibility/version';
+import {
+  assessDuplicateBenefit,
+  type DuplicateBenefitAssessment,
+  type PriorApplicationBenefit,
+} from '@/lib/duplicate-benefit';
 
 export interface MatchOptions {
   limit?: number;
@@ -145,28 +151,46 @@ export function matchPercent(program: Program, profile: Profile): number {
 }
 
 /**
- * 중복수혜 제한 check — Korean support programs frequently bar applicants who
- * already received a similar benefit. Heuristic: flag programs sharing a
- * category with something the user has already been `selected` for.
+ * Evidence-aware duplicate-benefit check. A same-category application never warns by itself:
+ * the current extraction must contain a verified, explicitly cited duplicate-support clause.
  */
 export async function findDuplicateBenefitConflict(
   supabase: SupabaseClient,
   userId: string,
   program: Program
-): Promise<{ title: string } | null> {
-  if (!program.category) return null;
+): Promise<DuplicateBenefitAssessment | null> {
+  const { data: run, error: runError } = await supabase
+    .from('program_extraction_runs').select('id')
+    .eq('program_id', program.id).eq('extractor_version', ELIGIBILITY_EXTRACTOR_VERSION)
+    .eq('status', 'succeeded').order('completed_at', { ascending: false }).limit(1).maybeSingle();
+  if (runError) throw runError;
+  if (!run) return null;
 
-  const { data, error } = await supabase
+  const [{ data: requirementRows, error: requirementError }, { data, error }] = await Promise.all([
+    supabase.from('program_eligibility_requirements')
+      .select('normalized_text,verification,program_source_documents(source_url)')
+      .eq('extraction_run_id', run.id).eq('requirement_type', 'exclusion'),
+    supabase
     .from('saved_programs')
-    .select('program:programs(title, category)')
+    .select('status,program:programs(title,agency,category,funding_type)')
     .eq('user_id', userId)
-    .eq('status', 'selected')
-    .neq('program_id', program.id);
-
+    .in('status', ['submitted', 'screening', 'interview', 'selected'])
+    .neq('program_id', program.id),
+  ]);
+  if (requirementError) throw requirementError;
   if (error) throw error;
-
-  const rows = (data ?? []) as unknown as { program: { title: string; category: string | null } }[];
-  const conflict = rows.find((row) => row.program?.category === program.category);
-
-  return conflict?.program ? { title: conflict.program.title } : null;
+  const restrictions = (requirementRows ?? []).map((row) => {
+    const source = Array.isArray(row.program_source_documents)
+      ? row.program_source_documents[0] ?? null : row.program_source_documents;
+    return { clause: row.normalized_text, verification: row.verification, sourceUrl: source?.source_url ?? null };
+  });
+  const priorBenefits = (data ?? []).map((row) => {
+    const linked = Array.isArray(row.program) ? row.program[0] ?? null : row.program;
+    return {
+      title: linked?.title ?? '', agency: linked?.agency ?? '',
+      category: linked?.category ?? null, fundingType: linked?.funding_type ?? null,
+      status: row.status,
+    };
+  }) as PriorApplicationBenefit[];
+  return assessDuplicateBenefit({ program, restrictions, priorBenefits });
 }

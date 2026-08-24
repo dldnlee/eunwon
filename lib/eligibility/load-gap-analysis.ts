@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Profile } from '@/lib/types';
-import { ELIGIBILITY_EXTRACTOR_VERSION } from './extraction';
+import { ELIGIBILITY_EXTRACTOR_VERSION } from './version';
 import {
   evaluateEligibilityGaps,
   type EligibilityGapRequirement,
