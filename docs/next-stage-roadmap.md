@@ -48,7 +48,7 @@ path and deterministic evidence validator pass local tests. Existing production 
 normalized evidence on a subsequent successful program sync; no bulk AI backfill was invented or
 triggered as part of schema deployment.
 
-#### T2. Import-time HTML/text extraction and reuse — quality gate complete; pilot pending
+#### T2. Import-time HTML/text extraction and reuse — pilot executed; semantic gate stopped
 
 Dependencies: T1.
 
@@ -68,8 +68,9 @@ so unchanged notices skip all eligibility-related AI work (currently only the no
 source-backed extraction is skipped). Mocked persistence coverage now proves successful cache reuse,
 retry of a non-successful same-version run, run-scoped cleanup, and preservation of prior facts when
 extraction fails. The reviewed batch/review/stop policy is documented in
-[`eligibility-backfill-runbook.md`](./eligibility-backfill-runbook.md). Remaining: run an explicitly
-approved 25-record pilot under that policy, and consolidate the older flattened enrichment call.
+[`eligibility-backfill-runbook.md`](./eligibility-backfill-runbook.md). The approved 25-record pilot
+has now run under that policy. Remaining: tighten the semantic extraction contract, repeat the gate
+sample, and consolidate the older flattened enrichment call.
 
 Observed sample (2026-08-23): the bounded `backfill:eligibility:sample` command has a hard maximum
 of five programs and was run against three active production records using the existing private
@@ -86,6 +87,20 @@ backfill or proof of quality across the full corpus.
 Read-only revalidation on 2026-08-23 confirmed the latest state remained 3/3 successful v2 runs,
 12 requirements (11 verified, one inferred), zero invalid verified citations, and zero latest-run
 errors. This closes the bounded sample quality follow-up, not the broader evidence-population task.
+
+Pilot observation (2026-08-24): a bounded 25-program runner added explicit acknowledgement,
+concurrency 1, no retries, source-size limits, observed token accounting, a 250,000-token ceiling,
+and resumable prior-usage accounting. Its first attempt correctly stopped at a 14.3% failure rate
+after a missing model `value` reached the non-null JSON column. The validator now discards missing
+or null values, and the explicitly resumed run completed the remaining records. Final state was
+25/25 succeeded, 98 requirements (84 verified, 14 inferred), 24,964 observed tokens, and zero
+structurally invalid citations or confidence values.
+
+The semantic review did not pass: exact substring validation alone allowed some normalized claims
+to exceed the meaning of their quote, a submission instruction was classified as an exclusion, and
+some inferred exclusions redundantly negated positive rules. Therefore no larger backfill is
+authorized. Next T2 action is a version bump with stricter entailment/type rules followed by a new
+1–5 gate sample; the existing pilot rows are retained as review evidence.
 
 #### T3. Notice-page and attachment acquisition
 
@@ -731,6 +746,8 @@ Evaluation and acceptance criteria:
 | D-026 | 2026-08-23 | Snapshot checklist evidence at creation while retaining the source-requirement link; later extraction runs do not rewrite user completion. | Accepted; preserves an auditable application workspace. |
 | D-027 | 2026-08-23 | Anonymous users cannot execute the tracker transition RPC, and eligibility extraction mutations are explicitly service-role-only at both grant and RLS layers. | Accepted and verified in production. |
 | D-028 | 2026-08-24 | Signup must not expose whether an email address already has an account; remove the public auth lookup and use one completion response for new and existing addresses. | Accepted; migration 018 removed the SECURITY DEFINER RPC and the related advisor findings are cleared. |
+| D-029 | 2026-08-24 | Do not enable Supabase leaked-password protection for the focused beta. | Owner decision accepted as a documented configuration risk; revisit before broad launch. |
+| D-030 | 2026-08-24 | Limit the first eligibility pilot to 25 programs and a maximum KRW 10,000 spend, enforced operationally with a conservative 250,000-token ceiling and stop rules. | Accepted; observed usage was 24,964 tokens, and bulk work remains stopped after the semantic gate failed. |
 
 ## Resume checklist
 

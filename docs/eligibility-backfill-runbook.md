@@ -1,9 +1,10 @@
 # Eligibility evidence backfill runbook
 
-Last updated: 2026-08-23
+Last updated: 2026-08-24
 
 This runbook governs production population of source-backed eligibility evidence. It is intentionally
-conservative: the current three-program observation validates a narrow path, not corpus-wide quality.
+conservative: the current 25-program pilot validates the bounded execution path but did not pass the
+semantic quality gate for corpus-wide use.
 Do not turn the sample command into a bulk runner by increasing its hard cap or repeatedly invoking it.
 
 ## Preconditions
@@ -81,3 +82,20 @@ A batch passes only when counts reconcile (candidate = succeeded + failed + deli
 all stop rules remain clear, the required review sample passes, cache-hit behavior is observed, and the
 operator records version, timestamps, size, duration, aggregate outcomes, and reviewer sign-off. These
 records are operational evidence, not a claim that every applicant is eligible.
+
+## 2026-08-24 pilot disposition
+
+- Approved ceiling: 25 programs, concurrency 1, no automatic retry, 250,000 observed/preflight
+  tokens as the conservative safety proxy for the separately approved KRW 10,000 maximum spend.
+- First attempt stopped after six successes and one persistence failure (14.3% failure rate). The
+  model omitted a required JSON value, which had become SQL null. The validator now rejects missing
+  or null top-level values, with regression coverage; the failed record then succeeded on an
+  explicitly resumed run.
+- Final execution: 25/25 succeeded, 98 requirements (84 verified, 14 inferred), 24,964 observed
+  tokens total, zero null values, zero out-of-range confidence values, and zero verified citations
+  with missing or non-reproducing offsets.
+- Semantic review did **not** approve a broader batch. Examples included normalized verified claims
+  broader than their exact quotes, a submission instruction typed as an exclusion, and redundant
+  inferred exclusions created by negating positive eligibility rules.
+- Disposition: keep controlled/bulk backfill stopped. Tighten the extraction contract, bump the
+  extractor version, repeat the 1–5 gate sample, and only then request approval for another pilot.

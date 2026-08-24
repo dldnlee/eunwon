@@ -41,7 +41,9 @@ export interface ValidatedEligibilityRequirement {
 const rawRequirementSchema = z.object({
   requirement_type: z.enum(REQUIREMENT_TYPES),
   operator: z.enum(['eq', 'in', 'gte', 'lte', 'between', 'contains', 'excludes']),
-  value: z.unknown(),
+  value: z.union([
+    z.string(), z.number(), z.boolean(), z.array(z.json()), z.record(z.string(), z.json()),
+  ]),
   normalized_text: z.string().min(1),
   source_key: z.string().min(1).nullable().optional(),
   evidence_quote: z.string().min(1).nullable().optional(),

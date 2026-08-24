@@ -25,12 +25,21 @@ export const UPSTAGE_MODEL = 'solar-pro4';
 export async function generateText(params: {
   prompt: string;
   maxTokens?: number;
+  onUsage?: (usage: { inputTokens: number; outputTokens: number; totalTokens: number }) => void;
 }): Promise<string> {
   const completion = await getClient().chat.completions.create({
     model: UPSTAGE_MODEL,
     messages: [{ role: 'user', content: params.prompt }],
     max_tokens: params.maxTokens,
   });
+
+  if (completion.usage) {
+    params.onUsage?.({
+      inputTokens: completion.usage.prompt_tokens,
+      outputTokens: completion.usage.completion_tokens,
+      totalTokens: completion.usage.total_tokens,
+    });
+  }
 
   return completion.choices[0]?.message?.content ?? '';
 }

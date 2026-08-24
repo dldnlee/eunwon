@@ -18,13 +18,12 @@ are applied and their new RLS/policies/indexes were inspected.
 
 Before inviting customers, complete the critical items below:
 
-1. Execute the reviewed [eligibility backfill policy](./eligibility-backfill-runbook.md) before
-   corpus-wide evidence population. A three-program observed sample now passes, but the remaining
-   program corpus has not been reviewed or backfilled.
+1. Tighten and revalidate the eligibility extraction contract before corpus-wide evidence
+   population. The 25-program pilot completed safely but failed its semantic quality gate.
 2. Run an explicitly authorized test-recipient delivery check for each notification category.
    Authenticated production acceptance now passes, but email delivery was deliberately not triggered.
-3. Enable Supabase leaked-password protection in deployment configuration. This audit did not
-   change external auth settings.
+3. Revisit Supabase leaked-password protection before broad launch. The owner explicitly chose not
+   to enable it for this focused beta.
 
 ## Evidence matrix
 
@@ -32,7 +31,7 @@ Before inviting customers, complete the critical items below:
 |---|---|---|
 | Authentication and route protection | Pass; one configuration gate | App layout and pages re-check the session server-side. API mutations authenticate and scope ownership. `/events` is covered by middleware and server authentication. Migration 018 removed the public `email_is_registered` SECURITY DEFINER RPC, and signup now returns the same non-enumerating completion state for new and existing addresses. Leaked-password protection remains disabled. |
 | Onboarding and profile | Pass | Signed-in production acceptance used the designated showcase account and loaded its complete company profile without errors. Form validation and responsive controls remain covered by code/UI review. |
-| Credible matching | Partial | Existing deterministic matching and AI explanations remain. A bounded three-program production evidence run produced 12 v2 requirements: 11 verified, one inferred, with every quote exactly present in its stored source. This sample does not establish corpus-wide evidence quality or populate all programs. |
+| Credible matching | Partial; quality gate stopped | Existing deterministic matching and AI explanations remain. The 25-program v2 pilot produced 98 requirements with reproducible citation offsets, but semantic review found some verified normalizations broader than their quotes and noisy inferred exclusions. No broad backfill is authorized. |
 | Saved programs and tracker | Pass | Eight-stage atomic transition, ownership check, history, next action/date, outcomes, notes, and empty state are implemented. Anonymous RPC execution is explicitly revoked; authenticated execution remains intentional and ownership-checked. |
 | Preparation checklist | Pass, data-dependent | User-owned RLS table and API support source snapshots, completion, manual items, verified/inferred distinction, confidence, exact quote, source link, and resilient states. Manual items cannot claim stored citations. Automatic items are available for the sampled programs; other programs remain unavailable until their evidence is populated. |
 | Notification preferences | Pass (code and route boundary) | Opportunity briefing, saved-program deadline reminders, and event reminders have independent controls and configurable lead times. Digest selection is capped/deduplicated and tested; deadline reminders are preserved. On 2026-08-23 the configured production route `/api/cron/notify-users` rejected an invalid token with 401. No email was sent during smoke testing; authorized test-recipient delivery remains. |
@@ -41,13 +40,13 @@ Before inviting customers, complete the critical items below:
 | Sharing | Partial | Native Web Share with copy fallback exists. Program detail pages are authenticated and the current payload uses the browser URL, so the roadmap's canonical public-share promise is not complete. Never add match/profile/application details to shares. |
 | Errors and empty states | Pass with follow-up | Main dashboard, saved list, events, checklist, forms, and not-found states are present. Checklist/API failures are user-safe. Contact/notification Resend construction was moved to request time so absent local secrets no longer break builds. Add route-level `error.tsx` boundaries for finer recovery. |
 | Accessibility and mobile | Pass for changed flows | UI uses semantic sections/lists, labels, live regions, focus rings, 44px mobile targets, keyboard-native controls, and responsive layouts. Checklist was inspected at 1280×900 and 390×844 with no overflow or console errors. Full WCAG assistive-technology regression remains a pre-broad-launch task. |
-| RLS and database security | Pass for new schema; legacy findings | Migrations 011-018 are live. New user-owned checklist has four owner policies and indexed FKs. Eligibility writes are service-only. The account-enumeration advisor warning is cleared. Advisors still report older RLS init-plan performance warnings, intentional authenticated tracker SECURITY DEFINER execution, and leaked-password protection disabled. |
+| RLS and database security | Pass for new schema; accepted configuration risk | Migrations 011-018 are live. New user-owned checklist has four owner policies and indexed FKs. Eligibility writes are service-only. The account-enumeration advisor warning is cleared. Advisors still report older RLS init-plan performance warnings, intentional authenticated tracker SECURITY DEFINER execution, and leaked-password protection disabled by owner decision. |
 | Production build | Pass | `npm test`, `npm run lint`, `npx tsc --noEmit`, and `npm run build` pass after lazy Resend initialization. Build produced 27 pages/routes. |
 | Payments | Not exercised | Billing routes and recurring charge cron were not invoked or modified, per scope. Validate separately only with explicit financial test authorization and provider-safe fixtures. |
 
 ## Verification record
 
-- Unit suite: 28 deterministic tests, including cache reuse, failed-run retry, prior-evidence
+- Unit suite: 29 deterministic tests, including cache reuse, failed-run retry, prior-evidence
   preservation, and the zero-result extraction failure contract.
 - Static checks: Next ESLint and TypeScript pass.
 - Production build: Next.js 14.2.35 optimized build passes.
@@ -62,11 +61,12 @@ Before inviting customers, complete the critical items below:
 
 ## Recommended next sequence
 
-1. Run the first explicitly approved 25-record pilot under the documented T2 review/stop policy;
-   do not perform a corpus-wide backfill yet.
+1. Tighten the extraction prompt/validator for semantic entailment and requirement typing, bump the
+   version, and repeat the 1–5 gate sample; do not perform a corpus-wide backfill yet.
 2. Complete authorized test-recipient notification delivery without involving customer accounts or
    unsolicited recipients.
-3. Enable Supabase leaked-password protection and review the existing dependency audit findings.
+3. Review the existing dependency audit findings; leaked-password protection is an accepted beta
+   risk and must be reconsidered before broad launch.
 4. T9 deterministic profile gap analysis, which can now consume normalized cited requirements.
 5. T20 admin read-only import/extraction/notification health so beta support can diagnose failures.
 
@@ -102,6 +102,26 @@ Safe operator command (the environment file remains private and gitignored):
 `ELIGIBILITY_ENV_FILE=/absolute/private/.env.local npm run backfill:eligibility:sample -- 3`
 
 Do not raise the hard cap or loop this command as a substitute for the reviewed T2 batch process.
+
+### 25-program pilot (2026-08-24)
+
+The approved pilot used concurrency 1, no automatic retry, a 20,000-character per-program source
+limit, and a conservative 250,000-token ceiling. The first attempt stopped after six successes and
+one persistence failure because a model item omitted `value`; the resulting SQL null violated the
+schema. The extraction validator now rejects missing/null values and has regression coverage. An
+explicit resume processed only the remaining 19 candidates while carrying forward prior usage.
+
+Final observed state: 25/25 latest v2 runs succeeded; 98 requirements comprise 84 verified and 14
+inferred rows; observed model usage was 24,964 tokens. Read-only SQL found zero null values, invalid
+confidence values, or verified citations whose stored offsets failed to reproduce the exact quote.
+No invoice amount is inferred from token telemetry; the token ceiling is a safety guard, not a
+provider billing statement.
+
+The semantic gate did not pass. Review found verified normalizations broader than the cited phrase,
+an application submission instruction mis-typed as an exclusion, and inferred exclusions that
+merely negated already-recorded positive rules. These rows remain review evidence, not approved
+matching facts. Broad/controlled backfill stays stopped pending a tightened, versioned extraction
+contract and a new 1–5 gate sample.
 
 ## Production smoke record (2026-08-23)
 

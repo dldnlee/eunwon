@@ -62,6 +62,23 @@ test('a fabricated citation is downgraded and invalid structures are discarded',
   assert.equal(requirements[0].evidenceQuote, null);
 });
 
+test('requirements without a persistable value are discarded', () => {
+  const requirements = validateEligibilityRequirements([
+    {
+      requirement_type: 'region', operator: 'in',
+      normalized_text: '서울 소재', source_key: 'target', evidence_quote: '서울 소재',
+      verification: 'verified', confidence: 0.9,
+    },
+    {
+      requirement_type: 'region', operator: 'in', value: null,
+      normalized_text: '서울 소재', source_key: 'target', evidence_quote: '서울 소재',
+      verification: 'verified', confidence: 0.9,
+    },
+  ], sources);
+
+  assert.deepEqual(requirements, []);
+});
+
 test('AI extraction response passes through deterministic evidence validation', async () => {
   const result = await extractEligibilityRequirements(sources, async () => JSON.stringify({
     requirements: [{

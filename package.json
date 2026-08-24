@@ -10,7 +10,8 @@
     "lint": "next lint",
     "sync": "tsx scripts/sync-programs.ts",
     "sync:events": "tsx scripts/sync-events.ts",
-    "backfill:eligibility:sample": "tsx scripts/backfill-eligibility-sample.ts"
+    "backfill:eligibility:sample": "tsx scripts/backfill-eligibility-sample.ts",
+    "backfill:eligibility:pilot": "tsx scripts/backfill-eligibility-pilot.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
