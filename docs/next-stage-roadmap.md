@@ -634,6 +634,13 @@ workspace/account model decision for shared usage; T20 access/audit foundation f
 This is an MVP operations requirement but is not foundational to T5, so implementation follows the
 active end-to-end tracker work.
 
+Implementation status (2026-08-25): the privacy-reduced append-only ledger foundation is deployed.
+It has controlled feature/outcome/error taxonomies, nullable token/cost fields, hashed idempotency,
+explicit user/system/admin attribution, server-only writes, and an owner-scoped aggregate RPC that
+does not expose provider identifiers or internal cost. No prompt, completion, document, raw error,
+or provider payload column exists. Call-site instrumentation, atomic reservations, configured model
+pricing, retention, and hard/soft limits remain incomplete and must not be represented as active.
+
 - Data model: append-only AI usage events with nullable `user_id` and `workspace_id`, a required
   attribution class (`user`, `workspace`, `system_import`, `admin_operation`), feature/action,
   provider/model, provider request ID when safe, input/output/cache-read/cache-write token counts
