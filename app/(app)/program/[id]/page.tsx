@@ -8,13 +8,11 @@ import { SaveToggleButton } from '@/components/SaveToggleButton';
 import { ShareButton } from '@/components/ShareButton';
 import { MatchExplanation } from '@/components/MatchExplanation';
 import { EligibilityGapAnalysis } from '@/components/EligibilityGapAnalysis';
+import { MatchConfidence } from '@/components/MatchConfidence';
 import { TOSS_ENABLED } from '@/lib/payments';
 import { findDuplicateBenefitConflict } from '@/lib/matching';
-import {
-  evaluateEligibilityGaps,
-  type EligibilityGapRequirement,
-} from '@/lib/eligibility/gap-analysis';
-import { ELIGIBILITY_EXTRACTOR_VERSION } from '@/lib/eligibility/extraction';
+import { loadEligibilityGapAnalysis } from '@/lib/eligibility/load-gap-analysis';
+import { calculateMatchConfidence } from '@/lib/match-confidence';
 import type { Profile } from '@/lib/types';
 import { isProUser } from '@/lib/trial';
 import { formatKoreanDate } from '@/lib/utils';
@@ -43,44 +41,39 @@ export default async function ProgramDetailPage({ params }: { params: { id: stri
 
   const isPro = !!profile && isProUser(profile.subscription, user.created_at);
   const duplicateConflict = await findDuplicateBenefitConflict(supabase, user.id, program);
-  const { data: extractionRun } = await supabase
-    .from('program_extraction_runs')
-    .select('id')
-    .eq('program_id', program.id)
-    .eq('extractor_version', ELIGIBILITY_EXTRACTOR_VERSION)
-    .eq('status', 'succeeded')
-    .order('completed_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const { data: requirementRows } = extractionRun
-    ? await supabase
-        .from('program_eligibility_requirements')
-        .select('id,requirement_type,operator,value_json,normalized_text,verification,confidence,evidence_quote,program_source_documents(title,source_url)')
-        .eq('extraction_run_id', extractionRun.id)
-        .order('created_at', { ascending: true })
-    : { data: null };
-
-  const requirements = (requirementRows ?? []).map((row) => {
-    const joinedSource = Array.isArray(row.program_source_documents)
-      ? row.program_source_documents[0] ?? null
-      : row.program_source_documents;
-    return {
-      id: row.id,
-      requirementType: row.requirement_type,
-      operator: row.operator,
-      value: row.value_json,
-      normalizedText: row.normalized_text,
-      verification: row.verification,
-      confidence: row.confidence,
-      evidenceQuote: row.evidence_quote,
-      sourceTitle: joinedSource?.title ?? null,
-      sourceUrl: joinedSource?.source_url ?? null,
-    } as EligibilityGapRequirement;
+  const loadedGaps = profile
+    ? await loadEligibilityGapAnalysis(supabase, program.id, profile as Profile)
+    : { extractionRun: null, analysis: { status: 'unavailable' as const, items: [], counts: { met: 0, notMet: 0, unknown: 0 } } };
+  const { extractionRun, analysis: gapAnalysis } = loadedGaps;
+  const matchConfidence = calculateMatchConfidence({
+    analysis: gapAnalysis,
+    profileUpdatedAt: profile?.updated_at ?? user.created_at,
+    programUpdatedAt: program.updated_at,
+    extractionRunId: extractionRun?.id ?? null,
+    extractionFingerprint: extractionRun?.source_fingerprint ?? null,
+    extractionCompletedAt: extractionRun?.completed_at ?? null,
   });
-  const gapAnalysis = profile
-    ? evaluateEligibilityGaps(requirements, profile as Profile)
-    : { status: 'unavailable' as const, items: [], counts: { met: 0, notMet: 0, unknown: 0 } };
+  const { error: assessmentError } = await supabase.from('program_match_assessments').upsert({
+    user_id: user.id,
+    program_id: program.id,
+    extraction_run_id: extractionRun?.id ?? null,
+    rule_version: matchConfidence.ruleVersion,
+    input_fingerprint: matchConfidence.inputFingerprint,
+    result_state: matchConfidence.resultState,
+    confidence_score: matchConfidence.confidenceScore,
+    evidence_coverage: matchConfidence.evidenceCoverage,
+    profile_coverage: matchConfidence.profileCoverage,
+    uncertainty_ratio: matchConfidence.uncertaintyRatio,
+    freshness_days: matchConfidence.freshnessDays,
+    profile_updated_at: profile?.updated_at ?? user.created_at,
+    program_updated_at: program.updated_at,
+    extraction_completed_at: extractionRun?.completed_at ?? null,
+    components: matchConfidence.components,
+  }, {
+    onConflict: 'user_id,program_id,rule_version,input_fingerprint',
+    ignoreDuplicates: true,
+  });
+  if (assessmentError) console.error('match assessment persistence failed:', assessmentError.code);
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-lg">
@@ -117,9 +110,9 @@ export default async function ProgramDetailPage({ params }: { params: { id: stri
         )}
       </div>
 
-      {isPro && <MatchExplanation programId={program.id} />}
-
+      <MatchConfidence assessment={matchConfidence} />
       <EligibilityGapAnalysis analysis={gapAnalysis} />
+      {isPro && <MatchExplanation programId={program.id} />}
 
       <Card>
         <CardHeader>

@@ -227,7 +227,7 @@ verified/inferred provenance and citations, and states that the comparison is no
 decision. The deterministic matrix covers satisfied, mismatched, missing, inferred, unsupported,
 numeric-unit, and incompatible-vocabulary cases.
 
-#### T10. Match confidence and explanation v2
+#### T10. Match confidence and explanation v2 — complete in repository and schema
 
 Dependencies: T9.
 
@@ -235,6 +235,17 @@ Dependencies: T9.
 - UI: score breakdown and uncertainty language; retain existing explanation feature.
 - Tests/acceptance: reproducible score and calibration dataset; explanations never contradict
   hard eligibility rules.
+
+Implementation status (2026-08-25): `program_match_assessments` stores immutable, owner-scoped
+snapshots keyed by rule/input fingerprint, including evidence coverage, comparable-profile coverage,
+uncertainty, freshness, result state, component counts, and source/profile/program timestamps. RLS
+permits authenticated users to read/insert/delete only their own rows; anonymous access is revoked
+and all FKs are indexed. The deterministic `match-confidence-v1` score is explicitly data quality,
+not eligibility or selection probability. Any known T9 mismatch controls the result state regardless
+of score. The UI shows component breakdown and freshness before T9 details. AI explanation remains a
+secondary Pro feature; it receives the same gap evidence, cannot promote unknown facts, and returns
+deterministic caution without a model call when a hard mismatch exists. The calibration dataset is
+the versioned snapshot table; outcome calibration remains dependent on T15 feedback.
 
 #### T11. Program comparison
 

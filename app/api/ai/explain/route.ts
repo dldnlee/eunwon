@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { explainMatch } from '@/lib/ai/explainMatch';
 import { isProUser } from '@/lib/trial';
+import { loadEligibilityGapAnalysis } from '@/lib/eligibility/load-gap-analysis';
 import type { Profile, Program } from '@/lib/types';
 
 export async function POST(request: Request) {
@@ -40,7 +41,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const explanation = await explainMatch(program as Program, profile as Profile);
+    const { analysis } = await loadEligibilityGapAnalysis(
+      supabase, program.id, profile as Profile
+    );
+    const explanation = await explainMatch(program as Program, profile as Profile, analysis);
     return NextResponse.json({ explanation });
   } catch (err) {
     console.error('explainMatch failed:', err);
