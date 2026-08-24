@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { formatKoreanDate } from '@/lib/utils';
 import type { Program, SavedStatus } from '@/lib/types';
-import { CalendarClock, CalendarPlus, Check, X } from 'lucide-react';
+import { CalendarClock, CalendarPlus, Check, FileDown, X } from 'lucide-react';
 import { PreparationChecklist } from '@/components/PreparationChecklist';
 
 const STATUS_OPTIONS = ['considering', 'preparing', 'submitted', 'screening', 'interview', 'selected', 'rejected', 'withdrawn'] as const satisfies readonly SavedStatus[];
@@ -87,12 +87,23 @@ export function SavedProgramRow({ savedId, program, initialStatus, initialNotes,
   return (
     <Card className="rounded-xl">
       <CardContent className="flex flex-col gap-lg p-lg sm:p-xl">
-        <div className="flex items-start justify-between gap-sm">
+        <div className="flex items-start justify-between gap-sm max-sm:flex-col">
           <div className="min-w-0">
             <Link href={`/program/${program.id}`} className="rounded-sm text-card-title text-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2">{program.title}</Link>
             <p className="mt-xxs text-body-sm text-steel">{program.agency} · ~{formatKoreanDate(program.deadline_end)}</p>
           </div>
-          <button type="button" onClick={remove} aria-label={`${program.title} 저장 목록에서 삭제`} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-stone transition-colors hover:bg-surface hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2 max-sm:h-11 max-sm:w-11"><X className="h-4 w-4" aria-hidden="true" /></button>
+          <div className="flex shrink-0 items-center gap-xs max-sm:w-full">
+            <a
+              href={`/api/saved-programs/${savedId}/summary.pdf`}
+              download
+              aria-label={`${program.title} 신청 요약 PDF 다운로드`}
+              className="inline-flex h-9 items-center justify-center gap-xxs rounded-full border border-hairline bg-canvas px-md text-caption-bold text-ink transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2 max-sm:min-h-11 max-sm:flex-1"
+            >
+              <FileDown className="h-4 w-4" aria-hidden="true" />
+              요약 PDF
+            </a>
+            <button type="button" onClick={remove} aria-label={`${program.title} 저장 목록에서 삭제`} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-stone transition-colors hover:bg-surface hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2 max-sm:h-11 max-sm:w-11"><X className="h-4 w-4" aria-hidden="true" /></button>
+          </div>
         </div>
 
         <section aria-labelledby={`progress-${savedId}`} className="flex flex-col gap-sm">

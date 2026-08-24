@@ -245,7 +245,7 @@ not eligibility or selection probability. Any known T9 mismatch controls the res
 of score. The UI shows component breakdown and freshness before T9 details. AI explanation remains a
 secondary Pro feature; it receives the same gap evidence, cannot promote unknown facts, and returns
 deterministic caution without a model call when a hard mismatch exists. The calibration dataset is
-the versioned snapshot table; outcome calibration remains dependent on T15 feedback.
+the versioned snapshot table; outcome calibration remains dependent on T18 feedback.
 
 #### T11. Program comparison — complete in repository
 
@@ -297,7 +297,7 @@ inactive, and closed programs before deterministic ranking. Category, funding ty
 target type, structured tags, and title terms contribute to a capped similarity score. Cards explain
 shared signals and concrete differences, link directly to each program, and label similarity as
 distinct from eligibility. The checked-in deterministic fixtures are the initial versioned ranking
-evaluation set; outcome-based tuning remains dependent on T15.
+evaluation set; outcome-based tuning remains dependent on T18.
 
 ### Phase 4 — Assisted application
 
@@ -327,6 +327,13 @@ Dependencies: T5-T7, optionally T15.
 - Data/API: server-side export snapshot and template version; PDF first, DOCX after template QA.
 - UI: export action and preview containing status, deadline, checklist, gaps, notes, and sources.
 - Tests/acceptance: Korean font/render fixture, deterministic snapshot, no private signed URLs.
+
+Implementation status (2026-08-25): each saved program now has an authenticated, owner-scoped PDF
+download. The server builds a versioned snapshot from application status, next action, checklist,
+profile-gap analysis, notes, public application links, and cited eligibility sources. Non-HTTP URLs
+are removed, responses are private/no-store, and the route uses a bundled OFL-licensed Korean font
+with font subsetting. A deterministic Korean fixture renders cleanly to A4 with verified, inferred,
+and user-added preparation items visibly distinguished. DOCX remains deferred until template QA.
 
 ### Phase 5 — Learning and retention
 

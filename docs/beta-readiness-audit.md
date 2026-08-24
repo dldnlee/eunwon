@@ -64,8 +64,8 @@ Before inviting customers, complete the critical items below:
 
 ## Recommended next sequence
 
-1. Implement T14 new/better-match alerts only after defining the explicit threshold/consent policy;
-   meanwhile continue dependency-ready T15 outcome feedback and T20 read-only operations work.
+1. T16 application-summary PDF export is implemented and locally render-verified; continue T20
+   read-only operations work while T17 alert thresholds and T18 feedback consent remain policy-gated.
 2. Complete authorized test-recipient notification delivery without involving customer accounts or
    unsolicited recipients.
 3. Review the existing dependency audit findings; leaked-password protection is an accepted beta

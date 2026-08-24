@@ -1,4 +1,10 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  experimental: {
+    outputFileTracingIncludes: {
+      '/api/saved-programs/*/summary.pdf': ['./assets/fonts/NanumGothic-Regular.ttf'],
+    },
+  },
+};
 
 export default nextConfig;
