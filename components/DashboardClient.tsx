@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { ProgramCard } from '@/components/ProgramCard';
 import { EventCard } from '@/components/EventCard';
 import { DashboardSummary } from '@/components/DashboardSummary';
+import { CompareSelectionControl, ComparisonTray } from '@/components/ProgramComparisonPicker';
 import { PillTabs, type PillTabItem } from '@/components/ui/tabs';
 import { Select } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -174,6 +175,7 @@ export function DashboardClient({
 }) {
   const router = useRouter();
   const [saved, setSaved] = useState<Set<string>>(new Set(savedProgramIds));
+  const [comparisonPrograms, setComparisonPrograms] = useState<Array<Pick<Program, 'id' | 'title'>>>([]);
   const [activeTab, setActiveTab] = useState<TabValue>('전체');
   const [category, setCategory] = useState('전체');
   const [region, setRegion] = useState('전체');
@@ -338,6 +340,15 @@ export function DashboardClient({
     router.refresh();
   }
 
+  function toggleComparison(program: Pick<Program, 'id' | 'title'>) {
+    setComparisonPrograms((current) => {
+      if (current.some((entry) => entry.id === program.id)) {
+        return current.filter((entry) => entry.id !== program.id);
+      }
+      return current.length < 4 ? [...current, program] : current;
+    });
+  }
+
   const tabItems: PillTabItem[] = [
     { value: '전체', label: '전체', count: initialPrograms.length + initialEvents.length },
     { value: '지원사업', label: '지원사업', count: bucketPrograms.program.length },
@@ -371,15 +382,22 @@ export function DashboardClient({
               </div>
               <div className="grid gap-md sm:grid-cols-2 lg:grid-cols-3">
                 {topAiRecommendations.map((program) => (
-                  <ProgramCard
-                    key={program.id}
-                    program={program}
-                    saved={saved.has(program.id)}
-                    onToggleSave={toggleSave}
-                    showExplainButton={isPro}
-                    matchScorePercent={matchPercent(program, profile)}
-                    aiRating={aiRatings[program.id]}
-                  />
+                  <div key={program.id}>
+                    <CompareSelectionControl
+                      program={program}
+                      selected={comparisonPrograms.some((entry) => entry.id === program.id)}
+                      disabled={comparisonPrograms.length >= 4}
+                      onToggle={toggleComparison}
+                    />
+                    <ProgramCard
+                      program={program}
+                      saved={saved.has(program.id)}
+                      onToggleSave={toggleSave}
+                      showExplainButton={isPro}
+                      matchScorePercent={matchPercent(program, profile)}
+                      aiRating={aiRatings[program.id]}
+                    />
+                  </div>
                 ))}
               </div>
             </section>
@@ -511,15 +529,22 @@ export function DashboardClient({
                   ) : (
                     <div className="grid gap-md sm:grid-cols-2">
                       {visiblePrograms.map((program) => (
-                        <ProgramCard
-                          key={program.id}
-                          program={program}
-                          saved={saved.has(program.id)}
-                          onToggleSave={toggleSave}
-                          showExplainButton={isPro}
-                          matchScorePercent={matchPercent(program, profile)}
-                          aiRating={aiRatings[program.id]}
-                        />
+                        <div key={program.id}>
+                          <CompareSelectionControl
+                            program={program}
+                            selected={comparisonPrograms.some((entry) => entry.id === program.id)}
+                            disabled={comparisonPrograms.length >= 4}
+                            onToggle={toggleComparison}
+                          />
+                          <ProgramCard
+                            program={program}
+                            saved={saved.has(program.id)}
+                            onToggleSave={toggleSave}
+                            showExplainButton={isPro}
+                            matchScorePercent={matchPercent(program, profile)}
+                            aiRating={aiRatings[program.id]}
+                          />
+                        </div>
                       ))}
                     </div>
                   )}
@@ -560,6 +585,11 @@ export function DashboardClient({
           </div>
         </div>
       )}
+      <ComparisonTray
+        selected={comparisonPrograms}
+        onRemove={(id) => setComparisonPrograms((current) => current.filter((entry) => entry.id !== id))}
+        onClear={() => setComparisonPrograms([])}
+      />
     </div>
   );
 }

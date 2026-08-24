@@ -247,13 +247,22 @@ secondary Pro feature; it receives the same gap evidence, cannot promote unknown
 deterministic caution without a model call when a hard mismatch exists. The calibration dataset is
 the versioned snapshot table; outcome calibration remains dependent on T15 feedback.
 
-#### T11. Program comparison
+#### T11. Program comparison — complete in repository
 
 Dependencies: T6, T7, T10.
 
 - Data/API: comparison projection for 2-4 program IDs.
 - UI: aligned eligibility, benefit, deadline, documents, gaps, and confidence table.
 - Tests/acceptance: URL-shareable selection, missing values shown as unknown, mobile fallback.
+
+Implementation status (2026-08-25): dashboard users can select 2–4 programs without affecting save
+or explanation actions, remove/clear selections, and open an authenticated `/compare?ids=...` URL.
+The server validates and deduplicates UUIDs, preserves selection order, scopes saved/checklist data to
+the signed-in owner, and projects the same T9/T10 eligibility state and quality score. Desktop uses a
+semantic aligned table; mobile/tablet uses program cards. Eligibility, data quality, benefit,
+deadline, checklist progress, application stage, and next action are compared. Missing fields always
+say `확인 필요`; a known mismatch remains authoritative; external apply links are protocol-checked.
+Deterministic tests cover URL bounds/deduplication and mismatch/unknown projection semantics.
 
 #### T12. Duplicate-benefit detection v2
 
