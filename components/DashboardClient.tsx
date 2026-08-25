@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { refreshDashboardData } from '@/app/(app)/dashboard/actions';
 import { createClient } from '@/lib/supabase/client';
 import { ProgramCard } from '@/components/ProgramCard';
 import { EventCard } from '@/components/EventCard';
@@ -17,7 +18,7 @@ import { TOSS_ENABLED } from '@/lib/payments';
 import { matchPercent, getProgramBucket, type ProgramBucket } from '@/lib/matching';
 import { categoryLabel, daysUntil } from '@/lib/utils';
 import type { ProgramMatchRating } from '@/lib/ai/rateProgramMatch';
-import { SearchX, CalendarClock, Info, Sparkles } from 'lucide-react';
+import { SearchX, CalendarClock, Info, Sparkles, RefreshCw } from 'lucide-react';
 import type { Program, Profile, Event } from '@/lib/types';
 
 // Smaller than before now that each request also sends descriptions (not just titles) server-side
@@ -161,6 +162,7 @@ export function DashboardClient({
   profile,
   initialPrograms,
   initialEvents,
+  lastUpdatedAt,
   savedProgramIds,
   isPro,
   freeLimit,
@@ -169,6 +171,7 @@ export function DashboardClient({
   profile: Profile;
   initialPrograms: Program[];
   initialEvents: Event[];
+  lastUpdatedAt: string;
   savedProgramIds: string[];
   isPro: boolean;
   freeLimit: number;
@@ -185,15 +188,21 @@ export function DashboardClient({
   // to plain 매칭도 since they'd otherwise land on an option that never actually sorts anything.
   const [sortBy, setSortBy] = useState<SortBy>(isPro ? 'ai' : 'match');
   const [aiRatings, setAiRatings] = useState<Record<string, ProgramMatchRating>>({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState(false);
   // Gates the tabs/grid so cards never render before every initial program's AI 매칭도 has
   // resolved — true immediately for non-Pro users, who never see AI ratings at all. Repeat
   // visits resolve near-instantly since the API route caches ratings in the DB, so this mostly
   // matters right after onboarding, on the very first load.
   const [initialRatingsReady, setInitialRatingsReady] = useState(!isPro);
-  // Tracks ids currently in flight so a re-render mid-request doesn't fire a duplicate batch —
-  // separate from aiRatings itself since "requested but not back yet" isn't a rating.
-  const requestedIds = useRef<Set<string>>(new Set());
-  const hasFetchedAllRef = useRef(false);
+  const lastUpdatedRef = useRef(lastUpdatedAt);
+
+  useEffect(() => {
+    if (lastUpdatedRef.current === lastUpdatedAt) return;
+    lastUpdatedRef.current = lastUpdatedAt;
+    setIsRefreshing(false);
+    setRefreshError(false);
+  }, [lastUpdatedAt]);
 
   const bucketPrograms = useMemo(() => {
     const map: Record<ProgramBucket, Program[]> = { program: [], contest: [], loan: [] };
@@ -260,11 +269,10 @@ export function DashboardClient({
   // repeat visits resolve this almost instantly from cache.
   useEffect(() => {
     if (!isPro) return;
-    if (hasFetchedAllRef.current) return;
-    hasFetchedAllRef.current = true;
+
+    setInitialRatingsReady(false);
 
     const allIds = initialPrograms.map((p) => p.id);
-    allIds.forEach((id) => requestedIds.current.add(id));
 
     const chunks: string[][] = [];
     for (let i = 0; i < allIds.length; i += AI_RATING_BATCH_SIZE) {
@@ -287,10 +295,7 @@ export function DashboardClient({
           })
       )
     ).finally(() => setInitialRatingsReady(true));
-    // Deliberately a one-time, mount-only fetch across the initial program set — re-running on
-    // prop changes would re-request everything and defeat the "just once" guard above.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isPro, initialPrograms, lastUpdatedAt]);
 
   // Up to 3 programs with the highest AI 매칭도 across the whole matched set (not just the
   // active tab) — only ones an AI rating actually came back for, so a program that failed to
@@ -320,6 +325,27 @@ export function DashboardClient({
     setMinMatchPercent(0);
     setMinAiMatchPercent(0);
   }
+
+  async function refreshDashboard() {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    setRefreshError(false);
+
+    try {
+      const result = await refreshDashboardData();
+      if (!result.ok) throw new Error('Dashboard refresh was rejected');
+      router.refresh();
+    } catch {
+      setIsRefreshing(false);
+      setRefreshError(true);
+    }
+  }
+
+  const lastUpdatedLabel = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(lastUpdatedAt));
 
   async function toggleSave(programId: string) {
     const supabase = createClient();
@@ -364,6 +390,27 @@ export function DashboardClient({
 
   return (
     <div>
+      <div className="mb-md flex flex-wrap items-center justify-end gap-xs">
+        <p role="status" aria-live="polite" className="text-caption text-stone">
+          마지막 업데이트: <time dateTime={lastUpdatedAt}>{lastUpdatedLabel}</time>
+        </p>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={refreshDashboard}
+          disabled={isRefreshing}
+          aria-busy={isRefreshing}
+        >
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
+          {isRefreshing ? '업데이트 중…' : '새로고침'}
+        </Button>
+        {refreshError && (
+          <p role="alert" className="basis-full text-right text-caption text-error">
+            업데이트하지 못했어요. 다시 시도해 주세요.
+          </p>
+        )}
+      </div>
       <DashboardSummary
         matchedCount={initialPrograms.length}
         savedCount={saved.size}

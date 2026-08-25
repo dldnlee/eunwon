@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { getMatchedPrograms } from '@/lib/matching';
-import { getUpcomingEvents } from '@/lib/events';
+import { getCachedDashboardData } from '@/lib/dashboard-cache';
 import { getPlanStatus } from '@/lib/trial';
 import { DashboardClient } from '@/components/DashboardClient';
 import { Badge } from '@/components/ui/badge';
@@ -24,9 +23,8 @@ export default async function DashboardPage() {
 
   if (!profile || !profile.onboarding_complete) redirect('/onboard');
 
-  const [programs, events, { data: savedRows }] = await Promise.all([
-    getMatchedPrograms(supabase, profile as Profile),
-    getUpcomingEvents(supabase, profile as Profile),
+  const [{ programs, events, updatedAt }, { data: savedRows }] = await Promise.all([
+    getCachedDashboardData(user.id, profile as Profile),
     supabase.from('saved_programs').select('program_id').eq('user_id', user.id),
   ]);
 
@@ -64,6 +62,7 @@ export default async function DashboardPage() {
         profile={profile as Profile}
         initialPrograms={programs}
         initialEvents={events}
+        lastUpdatedAt={updatedAt}
         savedProgramIds={(savedRows ?? []).map((r) => r.program_id)}
         isPro={isPro}
         freeLimit={5}
