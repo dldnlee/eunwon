@@ -7,8 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Logo } from '@/components/Logo';
+import { AuthSplitLayout } from '@/components/AuthSplitLayout';
 import { KakaoLoginButton } from '@/components/KakaoLoginButton';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -70,101 +69,98 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-lg bg-surface p-md">
-      <Logo className="h-8 w-auto" />
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>회원가입</CardTitle>
-          <CardDescription>무료로 5개 지원사업 매칭을 받아보세요</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {sent ? (
-            <div
-              role="status"
-              className="flex flex-col items-start gap-sm rounded-md bg-success-bg px-md py-sm"
-            >
-              <p className="text-body-sm text-success-text">
-                가입 가능한 주소라면 <strong>{email}</strong>로 인증 안내를 보내드려요. 메일함을
-                확인해주세요.
-              </p>
-              <p className="text-caption text-success-text">
-                이미 가입한 계정이라면 새 메일이 오지 않을 수 있어요. 기존 비밀번호로 로그인해
-                주세요.
-              </p>
-              <Link href="/login" className="w-full">
-                <Button className="w-full">로그인하기</Button>
-              </Link>
+    <AuthSplitLayout
+      title="회원가입"
+      description="무료로 5개 지원사업 매칭을 받아보세요"
+    >
+      {sent ? (
+        <div
+          role="status"
+          className="flex flex-col items-start gap-sm rounded-md bg-success-bg px-md py-sm"
+        >
+          <p className="text-body-sm text-success-text">
+            가입 가능한 주소라면 <strong>{email}</strong>로 인증 안내를 보내드려요. 메일함을
+            확인해주세요.
+          </p>
+          <p className="text-caption text-success-text">
+            이미 가입한 계정이라면 새 메일이 오지 않을 수 있어요. 기존 비밀번호로 로그인해
+            주세요.
+          </p>
+          <Link href="/login" className="w-full">
+            <Button className="w-full">로그인하기</Button>
+          </Link>
+        </div>
+      ) : (
+        <>
+          <KakaoLoginButton />
+
+          <div className="my-lg flex items-center gap-sm text-caption text-stone">
+            <span className="h-px flex-1 bg-hairline" />
+            또는
+            <span className="h-px flex-1 bg-hairline" />
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-md" noValidate>
+            <div className="flex flex-col gap-xs">
+              <Label htmlFor="email">이메일</Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                required
+                error={!!error}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+              />
             </div>
-          ) : (
-            <>
-              <form onSubmit={handleSubmit} className="flex flex-col gap-md" noValidate>
-                <div className="flex flex-col gap-xs">
-                  <Label htmlFor="email">이메일</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    error={!!error}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                  />
-                </div>
-                <div className="flex flex-col gap-xs">
-                  <Label htmlFor="password">비밀번호</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    minLength={6}
-                    error={!!error}
-                    aria-describedby="password-hint"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                  <p id="password-hint" className="text-caption text-stone">
-                    6자 이상 입력해주세요
-                  </p>
-                </div>
-                <div className="flex flex-col gap-xs">
-                  <Label htmlFor="confirmPassword">비밀번호 확인</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    error={!!error}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
-                </div>
-                {error && (
-                  <p role="alert" className="text-body-sm text-error">
-                    {error}
-                  </p>
-                )}
-                <Button type="submit" disabled={loading} className="w-full">
-                  {loading ? '가입 중...' : '회원가입'}
-                </Button>
-              </form>
-              <div className="my-lg flex items-center gap-sm text-caption text-stone">
-                <span className="h-px flex-1 bg-hairline" />
-                또는
-                <span className="h-px flex-1 bg-hairline" />
-              </div>
-              <KakaoLoginButton />
-              <p className="mt-lg text-center text-body-sm text-steel">
-                이미 계정이 있으신가요?{' '}
-                <Link href="/login" className="font-medium text-brand-blue-deep hover:underline">
-                  로그인
-                </Link>
+            <div className="flex flex-col gap-xs">
+              <Label htmlFor="password">비밀번호</Label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={6}
+                error={!!error}
+                aria-describedby="password-hint"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <p id="password-hint" className="text-caption text-stone">
+                6자 이상 입력해주세요
               </p>
-            </>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+            </div>
+            <div className="flex flex-col gap-xs">
+              <Label htmlFor="confirmPassword">비밀번호 확인</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                autoComplete="new-password"
+                required
+                error={!!error}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+            {error && (
+              <p role="alert" className="text-body-sm text-error">
+                {error}
+              </p>
+            )}
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? '가입 중...' : '이메일로 회원가입'}
+            </Button>
+          </form>
+
+          <p className="mt-lg text-center text-body-sm text-steel">
+            이미 계정이 있으신가요?{' '}
+            <Link href="/login" className="font-medium text-brand-blue-deep hover:underline">
+              로그인
+            </Link>
+          </p>
+        </>
+      )}
+    </AuthSplitLayout>
   );
 }
