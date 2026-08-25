@@ -13,7 +13,11 @@ export function KakaoLoginButton({ nextPath }: { nextPath?: string }) {
   async function handleClick() {
     setLoading(true);
     const supabase = createClient();
-    const redirectTo = new URL('/auth/callback', window.location.origin);
+    // Always use the canonical production origin when configured. Supabase only
+    // honors allowlisted redirect URLs, so a www/apex mismatch otherwise falls
+    // back to the Auth Site URL (the landing page) without reaching our callback.
+    const appOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim() || window.location.origin;
+    const redirectTo = new URL('/auth/callback', appOrigin);
     if (nextPath) redirectTo.searchParams.set('next', nextPath);
 
     const { error } = await supabase.auth.signInWithOAuth({

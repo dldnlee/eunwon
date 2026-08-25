@@ -45,14 +45,14 @@ export default async function ComparePage({
   const savedIds = saved.map((row) => row.id);
   const { data: checklistRows, error: checklistError } = savedIds.length > 0
     ? await supabase.from('saved_program_checklist_items')
-        .select('saved_program_id,is_completed').eq('user_id', user.id).in('saved_program_id', savedIds)
+        .select('saved_program_id,completed').eq('user_id', user.id).in('saved_program_id', savedIds)
     : { data: null, error: null };
   if (checklistError) throw checklistError;
   const checklistBySaved = new Map<string, { completed: number; total: number }>();
   for (const row of checklistRows ?? []) {
     const current = checklistBySaved.get(row.saved_program_id) ?? { completed: 0, total: 0 };
     current.total += 1;
-    if (row.is_completed) current.completed += 1;
+    if (row.completed) current.completed += 1;
     checklistBySaved.set(row.saved_program_id, current);
   }
 

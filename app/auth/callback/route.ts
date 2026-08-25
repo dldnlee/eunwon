@@ -11,11 +11,18 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
   const next = searchParams.get('next');
+  const destination = next?.startsWith('/') && !next.startsWith('//') ? next : '/onboard';
 
-  if (code) {
-    const supabase = createClient();
-    await supabase.auth.exchangeCodeForSession(code);
+  if (!code) {
+    return NextResponse.redirect(new URL('/login?error=oauth_callback', origin));
   }
 
-  return NextResponse.redirect(`${origin}${next ?? '/onboard'}`);
+  const supabase = createClient();
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error) {
+    console.error('OAuth code exchange failed:', error.message);
+    return NextResponse.redirect(new URL('/login?error=oauth_callback', origin));
+  }
+
+  return NextResponse.redirect(new URL(destination, origin));
 }

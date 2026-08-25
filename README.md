@@ -46,7 +46,7 @@ Upstage's OpenAI-compatible endpoint) · 토스페이먼츠 정기결제 · Rese
    | `BIZINFO_API_KEY` | [data.go.kr](https://www.data.go.kr) → 기업마당 API — use the **decoded** key (`==`, not `%3D%3D`) |
    | `NEXT_PUBLIC_TOSS_CLIENT_KEY` / `TOSS_SECRET_KEY` | [Toss Payments developer console](https://developers.tosspayments.com) — requires an approved business account (사업자등록증). Until set, every upgrade entry point in the UI hides itself (see `TOSS_ENABLED` in `lib/payments.ts`) instead of sending users into a broken checkout. |
    | `RESEND_API_KEY` | [resend.com](https://resend.com/api-keys) — needs a verified sending domain for `alerts@` and Supabase's own auth emails to actually deliver |
-   | `NEXT_PUBLIC_APP_URL` | Canonical service origin used for absolute program/dashboard links in email, e.g. `https://eunwon.com` |
+   | `NEXT_PUBLIC_APP_URL` | Canonical service origin used for OAuth callbacks and absolute links. Production must use `https://www.eunwon.com`. Add `https://www.eunwon.com/auth/callback` to Supabase Auth's redirect allowlist. |
    | `CRON_SECRET` | any random string you invent — also set the same value as a Vercel env var so Vercel Cron sends it automatically in the `Authorization` header |
 
 4. **Seed real program data** by running the sync script once locally:

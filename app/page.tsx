@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -56,7 +57,18 @@ async function getReviews(): Promise<Review[]> {
   }
 }
 
-export default async function LandingPage() {
+export default async function LandingPage({
+  searchParams,
+}: {
+  searchParams: { code?: string | string[] };
+}) {
+  // Recovery for Supabase Auth projects whose Site URL is configured as `/`.
+  // If an OAuth redirectTo is missing from the allowlist, Supabase falls back
+  // here with the authorization code. Route it immediately to the server-only
+  // exchange handler rather than rendering the landing page with the code.
+  const oauthCode = Array.isArray(searchParams.code) ? searchParams.code[0] : searchParams.code;
+  if (oauthCode) redirect(`/auth/callback?code=${encodeURIComponent(oauthCode)}`);
+
   const reviews = await getReviews();
 
   return (
