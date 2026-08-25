@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 export type AdminCapability =
   | 'admin_access' | 'user_read' | 'notification_read' | 'import_read'
   | 'eligibility_review' | 'billing_read' | 'billing_manage' | 'role_manage'
+  | 'marketing_content_manage'
   | 'audit_read' | 'audit_write';
 
 export async function hasAdminCapability(supabase: SupabaseClient, capability: AdminCapability): Promise<boolean> {

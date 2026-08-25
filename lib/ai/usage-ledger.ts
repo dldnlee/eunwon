@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type AiUsageAttribution = 'user' | 'workspace' | 'system_import' | 'admin_operation';
-export type AiUsageFeature = 'match_explanation' | 'match_rating' | 'document_draft' | 'eligibility_extraction' | 'program_enrichment' | 'consultation_chat';
+export type AiUsageFeature = 'match_explanation' | 'match_rating' | 'document_draft' | 'eligibility_extraction' | 'program_enrichment' | 'consultation_chat' | 'marketing_content_generation';
 
 export function usageCorrelationHash(value: string = randomUUID()): string {
   return createHash('sha256').update(value).digest('hex');
