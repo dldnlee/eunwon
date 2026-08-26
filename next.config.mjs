@@ -3,6 +3,7 @@ const nextConfig = {
   experimental: {
     outputFileTracingIncludes: {
       '/api/saved-programs/*/summary.pdf': ['./assets/fonts/NanumGothic-Regular.ttf'],
+      '/api/ai/generate-document/hwpx': ['./assets/templates/hwpx/**'],
     },
   },
 };

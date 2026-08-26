@@ -30,7 +30,8 @@ export async function generateDocument(program: Program, profile: Profile): Prom
 - 주관기관: ${program.agency}
 - 지원 내용: ${program.ai_summary ?? program.description ?? ''}
 
-형식: 사업 개요 → 신청 배경 → 추진 계획 → 기대 효과
+형식: 마크다운으로 작성하고, 사업 개요 → 신청 배경 → 추진 계획 → 기대 효과 순서로 각 섹션을 "## 제목" 형식의 헤딩으로 구분해주세요.
+각 섹션 안에서는 필요에 따라 문단과 "- " 글머리 기호 목록을 사용해주세요.
 실제 신청서에 바로 붙여넣을 수 있는 수준으로 작성해주세요.`,
   });
 }
