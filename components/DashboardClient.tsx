@@ -20,6 +20,7 @@ import { categoryLabel, daysUntil } from '@/lib/utils';
 import type { ProgramMatchRating } from '@/lib/ai/rateProgramMatch';
 import { SearchX, CalendarClock, Info, Sparkles, RefreshCw } from 'lucide-react';
 import type { Program, Profile, Event } from '@/lib/types';
+import { trackProductEvent } from '@/lib/telemetry/client';
 
 // Smaller than before now that each request also sends descriptions (not just titles) server-side
 // for re-fetching — keeps each batch's prompt/response size reasonable.
@@ -350,16 +351,24 @@ export function DashboardClient({
   async function toggleSave(programId: string) {
     const supabase = createClient();
     const next = new Set(saved);
+    const wasSaved = next.has(programId);
 
-    if (next.has(programId)) {
+    if (wasSaved) {
       next.delete(programId);
-      setSaved(next);
-      await supabase.from('saved_programs').delete().eq('user_id', userId).eq('program_id', programId);
     } else {
       next.add(programId);
-      setSaved(next);
-      await supabase.from('saved_programs').insert({ user_id: userId, program_id: programId });
     }
+    setSaved(next);
+
+    const { error } = wasSaved
+      ? await supabase.from('saved_programs').delete().eq('user_id', userId).eq('program_id', programId)
+      : await supabase.from('saved_programs').insert({ user_id: userId, program_id: programId });
+
+    if (error) {
+      setSaved(new Set(saved));
+      return;
+    }
+    if (!wasSaved) trackProductEvent('program_saved', { program_id: programId });
 
     // Bust Next's client-side Router Cache so a subsequent visit to 저장한 사업 (or back to this
     // page) re-fetches from the DB instead of serving whatever was cached before this mutation.

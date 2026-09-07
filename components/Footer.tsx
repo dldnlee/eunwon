@@ -19,12 +19,18 @@ const LINK_COLUMNS: { heading: string; links: { label: string; href: string }[] 
     links: [
       { label: '무료로 시작하기', href: '/signup' },
       { label: '로그인', href: '/login' },
-      { label: '요금제', href: '/#pricing' },
     ],
   },
   {
     heading: '고객지원',
     links: [{ label: '문의하기', href: '/contact' }],
+  },
+  {
+    heading: '법적 고지',
+    links: [
+      { label: '개인정보처리방침', href: '/privacy' },
+      { label: '이용약관', href: '/terms' },
+    ],
   },
 ];
 

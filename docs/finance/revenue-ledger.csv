@@ -1,0 +1,1 @@
+revenue_id,order_id,related_revenue_id,customer_id,customer_name,offer,contract_start,contract_end,invoice_date,tax_invoice_id,vat_treatment,billed_gross_krw,supply_value_krw,output_vat_krw,recognition_month,recognized_revenue_krw,collection_date,collected_gross_krw,payment_channel,processor_reference,status,source_document_url,owner,reviewed_by,reviewed_at,notes

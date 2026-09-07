@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 const TABS = [
   { href: '/settings/profile', label: '프로필' },
   { href: '/settings/notifications', label: '알림' },
-  { href: '/settings/billing', label: '결제' },
+  { href: '/settings/billing', label: '이용 플랜' },
   { href: '/settings/documents', label: '문서' },
 ];
 

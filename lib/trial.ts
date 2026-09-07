@@ -35,9 +35,15 @@ export function getPlanStatus(subscription: string, userCreatedAt: string): Plan
   return 'free';
 }
 
-/** Whether this account should see Pro-gated features right now — real subscription or active trial. */
+/**
+ * Product access is temporarily open to every signed-in account while we focus on adoption.
+ * Keep subscription and trial bookkeeping intact so paid plans can be re-enabled later without
+ * a data migration.
+ */
 export function isProUser(subscription: string, userCreatedAt: string): boolean {
-  return getPlanStatus(subscription, userCreatedAt) !== 'free';
+  void subscription;
+  void userCreatedAt;
+  return true;
 }
 
 /** Warn once, somewhere in the last week of the trial — never after it's ended, never twice. */
@@ -48,6 +54,8 @@ export function shouldWarnTrialEnding(
   userCreatedAt: string,
   trialEndingNotifiedAt: string | null
 ): boolean {
+  // Do not send conversion warnings while all product features are freely available.
+  if (isProUser(subscription, userCreatedAt)) return false;
   if (trialEndingNotifiedAt != null) return false;
   if (getPlanStatus(subscription, userCreatedAt) !== 'trial') return false;
   return trialDaysLeft(userCreatedAt) <= TRIAL_WARNING_WINDOW_DAYS;

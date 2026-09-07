@@ -1,4 +1,6 @@
 import Image from 'next/image';
+import Link from 'next/link';
+import { ChevronLeft } from 'lucide-react';
 
 /** Make.com-style split auth layout: form column on the left, full-bleed brand
  *  panel on the right (desktop only — collapses to a single centered column with
@@ -8,16 +10,27 @@ export function AuthSplitLayout({
   title,
   description,
   children,
+  showHomeLink = false,
 }: {
   title: string;
   description: string;
   children: React.ReactNode;
+  showHomeLink?: boolean;
 }) {
   return (
     <div className="flex min-h-screen bg-canvas">
       {/* Left — form column */}
-      <div className="flex w-full flex-col justify-center px-md py-section-lg lg:w-1/2 lg:px-xxl">
+      <main id="main-content" tabIndex={-1} className="flex w-full flex-col justify-center px-md py-section-lg focus:outline-none lg:w-1/2 lg:px-xxl">
         <div className="mx-auto flex w-full max-w-[400px] flex-col">
+          {showHomeLink && (
+            <Link
+              href="/"
+              className="mb-xl inline-flex min-h-11 w-fit items-center gap-xxs rounded-full border border-hairline px-md text-body-sm-medium text-steel transition-colors hover:border-ink hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              홈으로 돌아가기
+            </Link>
+          )}
           {/* Logo lives on the brand panel on desktop; keep it here on mobile where
               the panel is hidden. */}
           <p className="mb-xxl text-heading-sm font-semibold tracking-tight text-ink lg:hidden">
@@ -27,7 +40,7 @@ export function AuthSplitLayout({
           <p className="mb-xxl mt-sm text-subtitle text-steel">{description}</p>
           {children}
         </div>
-      </div>
+      </main>
 
       {/* Right — brand panel (desktop only) */}
       <aside className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-blue to-brand-blue-deep p-xxl lg:flex">

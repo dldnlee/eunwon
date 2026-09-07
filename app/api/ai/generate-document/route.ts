@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { generateDocument } from '@/lib/ai/generateDocument';
 import { isProUser } from '@/lib/trial';
 import type { Profile, Program } from '@/lib/types';
+import { recordProductEvent } from '@/lib/telemetry/server';
 
 export async function POST(request: Request) {
   const supabase = createClient();
@@ -41,6 +42,7 @@ export async function POST(request: Request) {
 
   try {
     const document = await generateDocument(program as Program, profile as Profile);
+    await recordProductEvent({ userId: user.id, name: 'document_generated', properties: { program_id: program.id } });
     return NextResponse.json({ document });
   } catch (err) {
     console.error('generateDocument failed:', err);

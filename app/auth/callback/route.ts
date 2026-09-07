@@ -24,5 +24,22 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/login?error=oauth_callback', origin));
   }
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // OAuth providers cannot collect eunwon-specific required consent. Route any account that
+  // has not completed it through the short post-login form before allowing onboarding.
+  if (
+    user &&
+    (typeof user.user_metadata.user_name !== 'string' ||
+      !user.user_metadata.user_name.trim() ||
+      typeof user.user_metadata.privacy_consent_at !== 'string')
+  ) {
+    const completionUrl = new URL('/signup/complete', origin);
+    completionUrl.searchParams.set('next', destination);
+    return NextResponse.redirect(completionUrl);
+  }
+
   return NextResponse.redirect(new URL(destination, origin));
 }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Bookmark } from 'lucide-react';
+import { trackProductEvent } from '@/lib/telemetry/client';
 
 export function SaveToggleButton({
   userId,
@@ -23,13 +24,17 @@ export function SaveToggleButton({
     setLoading(true);
     const supabase = createClient();
 
+    let error;
     if (saved) {
-      await supabase.from('saved_programs').delete().eq('user_id', userId).eq('program_id', programId);
+      ({ error } = await supabase.from('saved_programs').delete().eq('user_id', userId).eq('program_id', programId));
     } else {
-      await supabase.from('saved_programs').insert({ user_id: userId, program_id: programId });
+      ({ error } = await supabase.from('saved_programs').insert({ user_id: userId, program_id: programId }));
     }
 
-    setSaved(!saved);
+    if (!error) {
+      setSaved(!saved);
+      if (!saved) trackProductEvent('program_saved', { program_id: programId });
+    }
     setLoading(false);
     // Bust Next's client-side Router Cache so 저장한 사업 (and the dashboard) re-fetch from the
     // DB on the next visit instead of serving a payload cached before this mutation.

@@ -3,7 +3,6 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { DocumentGenerator } from '@/components/DocumentGenerator';
 import { Card, CardContent } from '@/components/ui/card';
-import { isProUser } from '@/lib/trial';
 import { ChevronLeft } from 'lucide-react';
 
 export default async function GenerateDocumentPage({ params }: { params: { id: string } }) {
@@ -14,16 +13,13 @@ export default async function GenerateDocumentPage({ params }: { params: { id: s
 
   if (!user) redirect('/login');
 
-  const [{ data: program }, { data: profile }] = await Promise.all([
-    supabase.from('programs').select('id, title, agency').eq('id', params.id).maybeSingle(),
-    supabase.from('profiles').select('subscription').eq('id', user.id).maybeSingle(),
-  ]);
+  const { data: program } = await supabase
+    .from('programs')
+    .select('id, title, agency')
+    .eq('id', params.id)
+    .maybeSingle();
 
   if (!program) notFound();
-
-  if (!profile || !isProUser(profile.subscription, user.created_at)) {
-    redirect(`/program/${params.id}`);
-  }
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-lg">

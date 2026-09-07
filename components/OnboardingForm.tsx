@@ -16,6 +16,7 @@ import { cn, getAgeMonths } from '@/lib/utils';
 import { Check } from 'lucide-react';
 import type { EntityType } from '@/lib/types';
 import { toDbBusinessStatus, type BusinessStatus } from '@/lib/verification/business';
+import { trackProductEvent } from '@/lib/telemetry/client';
 
 // '사업자 정보' is only included for entity types that actually have a
 // registration number — 예비창업자 skip straight from '사업 형태' to '업종 · 지역'.
@@ -108,7 +109,15 @@ function ChipGroup({
   );
 }
 
-export function OnboardingForm({ userId }: { userId: string }) {
+export function OnboardingForm({
+  userId,
+  initialUserName,
+  initialCompanyName,
+}: {
+  userId: string;
+  initialUserName: string;
+  initialCompanyName: string;
+}) {
   const router = useRouter();
   const [showWelcome, setShowWelcome] = useState(true);
   const [step, setStep] = useState(0);
@@ -117,8 +126,8 @@ export function OnboardingForm({ userId }: { userId: string }) {
   const [phraseIndex, setPhraseIndex] = useState(0);
 
   const [entityType, setEntityType] = useState<EntityType>('개인사업자');
-  const [companyName, setCompanyName] = useState('');
-  const [representativeName, setRepresentativeName] = useState('');
+  const [companyName, setCompanyName] = useState(initialCompanyName);
+  const [representativeName, setRepresentativeName] = useState(initialUserName);
   const [businessNumber, setBusinessNumber] = useState('');
   const [businessStatus, setBusinessStatus] = useState<BusinessStatus | null>(null);
   const [businessTaxType, setBusinessTaxType] = useState<string | null>(null);
@@ -171,7 +180,7 @@ export function OnboardingForm({ userId }: { userId: string }) {
     const { error } = await supabase.from('profiles').upsert({
       id: userId,
       entity_type: entityType,
-      company_name: isRegistered ? companyName || null : null,
+      company_name: companyName || null,
       representative_name: isRegistered ? representativeName || null : null,
       business_number: isRegistered ? businessNumber || null : null,
       // The verify call already tried to persist this directly, but that
@@ -214,6 +223,7 @@ export function OnboardingForm({ userId }: { userId: string }) {
       await new Promise((resolve) => setTimeout(resolve, remaining));
     }
 
+    trackProductEvent('onboarding_completed', { entity_type: entityType });
     router.push('/dashboard');
     router.refresh();
   }

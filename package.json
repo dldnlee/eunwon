@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "test": "tsx --test 'lib/**/*.test.ts'",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -35,6 +37,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

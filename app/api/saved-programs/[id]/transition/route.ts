@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { SAVED_STATUSES } from '@/lib/application-status';
 import { createClient } from '@/lib/supabase/server';
+import { recordProductEvent } from '@/lib/telemetry/server';
 
 const bodySchema = z.object({ status: z.enum(SAVED_STATUSES) });
 const idSchema = z.string().uuid();
@@ -37,6 +38,14 @@ export async function POST(
       { error: notFound ? '저장한 지원사업을 찾을 수 없습니다.' : '진행 상태를 변경하지 못했어요.' },
       { status: notFound ? 404 : 409 }
     );
+  }
+
+  if (parsed.data.status === 'preparing' && data?.program_id) {
+    await recordProductEvent({
+      userId: user.id,
+      name: 'application_started',
+      properties: { program_id: data.program_id },
+    });
   }
 
   return NextResponse.json({ savedProgram: data });

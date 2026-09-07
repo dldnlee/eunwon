@@ -4,6 +4,11 @@ import { createClient } from '@/lib/supabase/server';
 import { LogoutButton } from '@/components/LogoutButton';
 import { Logo } from '@/components/Logo';
 import { MobileNavMenu } from '@/components/MobileNavMenu';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -22,7 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             eunwon AI
           </Link>
           {/* Full link row on desktop — collapses to MobileNavMenu's hamburger drawer below md, per DESIGN.md's documented top-nav collapsing strategy. */}
-          <nav className="hidden items-center gap-lg text-body-sm font-medium text-steel md:flex">
+          <nav aria-label="주요 메뉴" className="hidden items-center gap-lg text-body-sm font-medium text-steel md:flex">
             <Link href="/dashboard" className="rounded-sm py-xs transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2">
               대시보드
             </Link>
@@ -40,7 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <MobileNavMenu />
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-xl py-xxl">{children}</main>
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-6xl px-xl py-xxl focus:outline-none">{children}</main>
     </div>
   );
 }

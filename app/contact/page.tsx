@@ -54,7 +54,7 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-lg bg-surface p-md">
+    <main id="main-content" tabIndex={-1} className="flex min-h-screen flex-col items-center justify-center gap-lg bg-surface p-md focus:outline-none">
       <Logo className="h-8 w-auto" />
       <Card className="w-full max-w-sm">
         <CardHeader>
@@ -159,6 +159,6 @@ export default function ContactPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }

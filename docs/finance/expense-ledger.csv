@@ -1,0 +1,1 @@
+expense_id,expense_date,recognition_month,supplier,category,description,currency,foreign_amount,fx_rate_krw,gross_krw,supply_value_krw,input_vat_krw,input_vat_treatment,payment_date,payment_method,processor_or_invoice_reference,reimbursable_to,customer_or_project,ai_feature,source_document_url,status,owner,reviewed_by,reviewed_at,notes

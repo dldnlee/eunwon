@@ -11,15 +11,14 @@ import { EligibilityGapAnalysis } from '@/components/EligibilityGapAnalysis';
 import { MatchConfidence } from '@/components/MatchConfidence';
 import { DuplicateBenefitNotice } from '@/components/DuplicateBenefitNotice';
 import { SimilarPrograms } from '@/components/SimilarPrograms';
-import { TOSS_ENABLED } from '@/lib/payments';
 import { findDuplicateBenefitConflict } from '@/lib/matching';
 import { loadEligibilityGapAnalysis } from '@/lib/eligibility/load-gap-analysis';
 import { calculateMatchConfidence } from '@/lib/match-confidence';
 import type { Profile, Program } from '@/lib/types';
-import { isProUser } from '@/lib/trial';
 import { formatKoreanDate } from '@/lib/utils';
 import { getSimilarPrograms } from '@/lib/similar-programs';
 import { ExternalLink } from 'lucide-react';
+import { TrackProductEvent } from '@/components/TrackProductEvent';
 
 export default async function ProgramDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -42,7 +41,6 @@ export default async function ProgramDetailPage({ params }: { params: { id: stri
 
   if (!program) notFound();
 
-  const isPro = !!profile && isProUser(profile.subscription, user.created_at);
   const [duplicateConflict, similarPrograms] = await Promise.all([
     findDuplicateBenefitConflict(supabase, user.id, program),
     profile ? getSimilarPrograms(supabase, program as Program, profile as Profile) : Promise.resolve([]),
@@ -83,6 +81,7 @@ export default async function ProgramDetailPage({ params }: { params: { id: stri
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-lg">
+      <TrackProductEvent name="program_opened" properties={{ program_id: program.id }} />
       <div>
         <div className="mb-sm flex flex-wrap gap-xs">
           {program.category && <Badge variant="outline">{program.category}</Badge>}
@@ -110,7 +109,7 @@ export default async function ProgramDetailPage({ params }: { params: { id: stri
 
       <MatchConfidence assessment={matchConfidence} />
       <EligibilityGapAnalysis analysis={gapAnalysis} />
-      {isPro && <MatchExplanation programId={program.id} />}
+      <MatchExplanation programId={program.id} />
 
       <Card>
         <CardHeader>
@@ -187,31 +186,14 @@ export default async function ProgramDetailPage({ params }: { params: { id: stri
 
       <SimilarPrograms recommendations={similarPrograms} />
 
-      {isPro ? (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center gap-sm p-lg text-center sm:flex-row sm:justify-between sm:text-left">
-            <p className="text-body-sm text-charcoal">사업계획서 초안을 AI로 작성해드려요.</p>
-            <Link href={`/program/${program.id}/generate`} className="shrink-0">
-              <Button size="sm">사업계획서 생성</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center gap-sm p-lg text-center sm:flex-row sm:justify-between sm:text-left">
-            <p className="text-body-sm text-charcoal">
-              {TOSS_ENABLED
-                ? 'Pro 플랜에서 사업계획서를 AI로 작성할 수 있어요.'
-                : 'Pro 플랜은 결제 연동 준비 중이에요.'}
-            </p>
-            {TOSS_ENABLED && (
-              <Link href="/upgrade" className="shrink-0">
-                <Button variant="outline" size="sm">Pro 업그레이드</Button>
-              </Link>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center gap-sm p-lg text-center sm:flex-row sm:justify-between sm:text-left">
+          <p className="text-body-sm text-charcoal">사업계획서 초안을 AI로 작성해드려요.</p>
+          <Link href={`/program/${program.id}/generate`} className="shrink-0">
+            <Button size="sm">사업계획서 생성</Button>
+          </Link>
+        </CardContent>
+      </Card>
 
       {program.detail_url && (
         <a

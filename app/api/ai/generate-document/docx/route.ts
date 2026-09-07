@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { renderBusinessPlanDocx } from '@/lib/business-plan-docx';
 import { resolveBusinessPlanExportContext } from '@/lib/business-plan-export';
+import { recordProductEvent } from '@/lib/telemetry/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,6 +29,11 @@ export async function POST(request: Request) {
     agency: result.context.agency,
     generatedAt: new Date(),
     markdown: parsed.data.document,
+  });
+  await recordProductEvent({
+    userId: result.context.userId,
+    name: 'document_exported',
+    properties: { program_id: result.context.programId, format: 'docx' },
   });
 
   return new NextResponse(Buffer.from(docx), {

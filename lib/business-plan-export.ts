@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { isProUser } from '@/lib/trial';
 
 export interface BusinessPlanExportContext {
+  userId: string;
   companyName: string;
   programTitle: string;
   agency: string;
@@ -33,6 +34,7 @@ export async function resolveBusinessPlanExportContext(programId: string): Promi
   return {
     ok: true,
     context: {
+      userId: user.id,
       companyName: profile.company_name ?? '신청 기업',
       programTitle: program.title,
       agency: program.agency,

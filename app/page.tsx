@@ -13,9 +13,15 @@ import { MotionProvider } from '@/components/motion/MotionProvider';
 import { FadeIn } from '@/components/motion/FadeIn';
 import { HighlightText } from '@/components/motion/HighlightText';
 import { createClient } from '@/lib/supabase/server';
-import { TOSS_ENABLED } from '@/lib/payments';
 import type { Review } from '@/lib/types';
-import { CheckCircle2 } from 'lucide-react';
+import { FAQS } from '@/components/FaqSection';
+import type { Metadata } from 'next';
+import { SITE_URL } from '@/lib/site-url';
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+  openGraph: { url: '/' },
+};
 
 // Single accent color (brand-blue) instead of a different brand color per card — a numbered
 // label stands in for the old per-feature icon.
@@ -70,10 +76,53 @@ export default async function LandingPage({
   if (oauthCode) redirect(`/auth/callback?code=${encodeURIComponent(oauthCode)}`);
 
   const reviews = await getReviews();
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': `${SITE_URL}/#organization`,
+        name: 'eunwon AI',
+        url: SITE_URL,
+        logo: `${SITE_URL}/icon.png`,
+        email: 'hello@eunwon.com',
+      },
+      {
+        '@type': 'WebSite',
+        '@id': `${SITE_URL}/#website`,
+        url: SITE_URL,
+        name: 'eunwon AI',
+        inLanguage: 'ko-KR',
+        publisher: { '@id': `${SITE_URL}/#organization` },
+      },
+      {
+        '@type': 'SoftwareApplication',
+        name: 'eunwon AI 정부지원사업 매칭',
+        applicationCategory: 'BusinessApplication',
+        operatingSystem: 'Web',
+        url: SITE_URL,
+        inLanguage: 'ko-KR',
+        description: '소상공인, 스타트업, 중소기업을 위한 정부지원사업 AI 맞춤 매칭 서비스',
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'KRW' },
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: FAQS.map(({ question, answer }) => ({
+          '@type': 'Question',
+          name: question,
+          acceptedAnswer: { '@type': 'Answer', text: answer },
+        })),
+      },
+    ],
+  };
 
   return (
     <MotionProvider>
     <div className="relative isolate min-h-screen overflow-hidden bg-canvas">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, '\\u003c') }}
+      />
       {/* Background color field, spread down the full page height so every glass panel — however far down you scroll — has some color behind it */}
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
         <div className="absolute -left-24 top-0 h-96 w-96 rounded-full bg-brand-blue-mid opacity-30 blur-3xl" />
@@ -111,7 +160,8 @@ export default async function LandingPage({
       <div className="h-20" aria-hidden="true" />
 
       {/* Hero */}
-      <section className="relative">
+      <main id="main-content" tabIndex={-1} className="focus:outline-none">
+      <section className="relative" aria-labelledby="landing-title">
         <div className="relative mx-auto grid max-w-6xl items-center gap-xxl px-xl py-section-lg sm:py-hero md:grid-cols-[minmax(0,1fr)_360px] lg:grid-cols-[minmax(0,1fr)_440px]">
           <div className="text-center md:text-left">
             <FadeIn>
@@ -120,8 +170,8 @@ export default async function LandingPage({
               </Badge>
             </FadeIn>
             <FadeIn delay={0.1}>
-              <h1 className="text-heading-md text-balance text-ink sm:text-heading-lg lg:text-display-lg">
-                지원사업,{' '}
+              <h1 id="landing-title" className="text-heading-md text-balance text-ink sm:text-heading-lg lg:text-display-lg">
+                정부지원사업,{' '}
                 <HighlightText>
                   <strong className="font-bold">eunwon</strong>
                 </HighlightText>
@@ -187,83 +237,28 @@ export default async function LandingPage({
         </FadeIn>
       )}
 
-      {/* Pricing */}
+      {/* Open access */}
       <FadeIn as="section" id="pricing" className="relative border-t border-white/60 py-section">
-        <div className="relative mx-auto max-w-4xl px-xl">
-          <h2 className="text-center text-heading-md text-ink">요금제</h2>
-          <div className="mt-xxl grid gap-lg sm:grid-cols-2">
-            <Card className={`border ${GLASS} shadow-[0_8px_32px_rgba(0,0,0,0.06)]`}>
-              <CardHeader>
-                <CardTitle>무료</CardTitle>
-                <CardDescription>가볍게 시작해보세요</CardDescription>
-                <p className="mt-xs text-heading-md text-ink">₩0</p>
-              </CardHeader>
-              <CardContent>
-                <ul className="flex flex-col gap-sm text-body-sm text-charcoal">
-                  <li className="flex items-center gap-xs">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 매칭 결과 5건
-                  </li>
-                  <li className="flex items-center gap-xs">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 기본 AI 요약
-                  </li>
-                  <li className="flex items-center gap-xs">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 북마크 기능
-                  </li>
-                </ul>
-                <Link href="/signup" className="mt-xl block">
-                  <Button variant="outline" className="w-full">무료로 시작</Button>
-                </Link>
-              </CardContent>
-            </Card>
-            <Card className={`border-brand-blue-deep/60 ${GLASS} ring-1 ring-brand-blue-deep/60 shadow-[0_0_32px_rgba(20,86,240,0.22)]`}>
-              <CardHeader>
-                <div className="flex items-center gap-xs">
-                  <CardTitle>Pro</CardTitle>
-                  <Badge variant={TOSS_ENABLED ? 'default' : 'secondary'}>
-                    {TOSS_ENABLED ? '추천' : '출시 예정'}
-                  </Badge>
-                </div>
-                <CardDescription>본격적으로 지원사업을 찾는다면</CardDescription>
-                <p className="mt-xs text-heading-md text-ink">
-                  ₩39,000<span className="text-body-md font-normal text-steel">/월</span>
-                </p>
-              </CardHeader>
-              <CardContent>
-                <ul className="flex flex-col gap-sm text-body-sm text-charcoal">
-                  <li className="flex items-center gap-xs">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 무제한 매칭
-                  </li>
-                  <li className="flex items-center gap-xs">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> &ldquo;왜 나에게 맞나요?&rdquo; AI 설명
-                  </li>
-                  <li className="flex items-center gap-xs">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 사업계획서 생성 도우미
-                  </li>
-                  <li className="flex items-center gap-xs">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 신규 매칭 · 마감 임박 이메일 알림
-                  </li>
-                  <li className="flex items-center gap-xs">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" /> 중복수혜 제한 확인
-                  </li>
-                </ul>
-                {TOSS_ENABLED ? (
-                  <Link href="/signup" className="mt-xl block">
-                    <Button className="w-full">Pro로 시작하기</Button>
-                  </Link>
-                ) : (
-                  <Button className="mt-xl w-full" variant="secondary" disabled>
-                    출시 예정
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+        <div className="relative mx-auto max-w-4xl px-xl text-center">
+          <Card className={`border ${GLASS} shadow-[0_8px_32px_rgba(0,0,0,0.06)]`}>
+            <CardContent className="flex flex-col items-center gap-md p-xxl sm:p-section-sm">
+              <p className="text-caption-bold text-success-text">지금은 모든 기능 무료</p>
+              <h2 className="text-heading-md text-ink">좋은 지원사업을 찾는 데 장벽이 없도록</h2>
+              <p className="max-w-2xl text-body-md text-charcoal">
+                무제한 맞춤 매칭부터 AI 설명, 사업계획서 생성, 이메일 알림까지 모두 이용해보세요.
+              </p>
+              <Link href="/signup">
+                <Button>무료로 시작하기</Button>
+              </Link>
+            </CardContent>
+          </Card>
         </div>
       </FadeIn>
 
       <FadeIn as="div">
         <FaqSection />
       </FadeIn>
+      </main>
 
       <Footer />
     </div>
