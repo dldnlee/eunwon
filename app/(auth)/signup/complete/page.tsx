@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { safeAuthRedirectPath } from '@/lib/auth-redirect';
 import { SignupCompletionForm } from '@/components/SignupCompletionForm';
 import type { Metadata } from 'next';
 
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 export default async function SignupCompletionPage({
   searchParams,
 }: {
-  searchParams: { next?: string };
+  searchParams: { next?: string | string[] };
 }) {
   const supabase = createClient();
   const {
@@ -20,9 +21,7 @@ export default async function SignupCompletionPage({
 
   if (!user) redirect('/login');
 
-  const requestedNext = searchParams.next?.startsWith('/') && !searchParams.next.startsWith('//')
-    ? searchParams.next
-    : '/onboard';
+  const requestedNext = safeAuthRedirectPath(searchParams.next);
   const next = ['/signup', '/signup/complete', '/login', '/auth/callback'].some((path) => requestedNext.startsWith(path))
     ? '/onboard'
     : requestedNext;

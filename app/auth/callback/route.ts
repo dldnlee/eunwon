@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { safeAuthRedirectPath } from '@/lib/auth-redirect';
 
 /**
  * Handles the Supabase email-confirmation / magic-link / OAuth (e.g. Kakao) redirect.
@@ -10,8 +11,7 @@ import { createClient } from '@/lib/supabase/server';
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next');
-  const destination = next?.startsWith('/') && !next.startsWith('//') ? next : '/onboard';
+  const destination = safeAuthRedirectPath(searchParams.get('next'));
 
   if (!code) {
     return NextResponse.redirect(new URL('/login?error=oauth_callback', origin));

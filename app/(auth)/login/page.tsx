@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { safeAuthRedirectPath } from '@/lib/auth-redirect';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,7 +37,7 @@ function LoginForm() {
       return;
     }
 
-    router.push(searchParams.get('next') ?? '/dashboard');
+    router.push(safeAuthRedirectPath(searchParams.get('next'), '/dashboard'));
     router.refresh();
   }
 
