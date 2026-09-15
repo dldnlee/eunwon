@@ -90,13 +90,15 @@ export async function POST(request: Request) {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) throw new Error('RESEND_API_KEY is not configured');
     const resend = new Resend(apiKey);
-    await resend.emails.send({
+    const { error } = await resend.emails.send({
       from: 'eunwon AI <alerts@eunwon.com>',
       to: process.env.CONTACT_EMAIL_TO || 'daniel@eunwon.com',
       replyTo: email,
       subject: `[문의] ${name}님의 문의`,
       html: buildContactEmailHtml({ name, email, company, inquiryType, message }),
     });
+    // Resend returns provider and network failures instead of throwing them.
+    if (error) throw new Error(error.message);
   } catch (err) {
     console.error('Failed to send contact email:', err);
     return NextResponse.json(
