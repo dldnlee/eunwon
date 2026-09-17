@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isAuthorizedCronRequest } from '@/lib/cron-auth';
 import { createServiceClient } from '@/lib/supabase/server';
 import { chargeBillingKey, PRO_MONTHLY_PRICE_KRW } from '@/lib/payments';
 import type { Profile } from '@/lib/types';
@@ -12,8 +13,7 @@ export const dynamic = 'force-dynamic';
  * mirrors the plan's "on failure/cancellation: downgrade to free tier" rule.
  */
 export async function GET(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 

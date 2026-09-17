@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isAuthorizedCronRequest } from '@/lib/cron-auth';
 import { Resend } from 'resend';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getMatchedPrograms } from '@/lib/matching';
@@ -50,8 +51,7 @@ function buildEventReminderEmailHtml(event: Event, daysLeft: number, kind: 'regi
  * final week before the trial lapses to the free plan. See lib/trial.ts.
  */
 export async function GET(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 

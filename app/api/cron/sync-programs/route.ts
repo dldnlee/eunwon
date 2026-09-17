@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isAuthorizedCronRequest } from '@/lib/cron-auth';
 import { syncPrograms } from '@/lib/sync/syncPrograms';
 import { correlationHeaders, requestCorrelationId, serverLog } from '@/lib/observability/server';
 
@@ -9,8 +10,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   const requestId = requestCorrelationId(request);
   const startedAt = Date.now();
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorizedCronRequest(request)) {
     serverLog('warn', 'cron.sync_programs.unauthorized', { request_id: requestId });
     return NextResponse.json({ error: 'unauthorized' }, { status: 401, headers: correlationHeaders(requestId) });
   }
