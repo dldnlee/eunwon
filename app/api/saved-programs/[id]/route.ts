@@ -1,22 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { savedProgramUpdateSchema } from '@/lib/saved-program-validation';
 
-const optionalDate = z.union([
-  z.literal(''),
-  z.string().regex(/^\d{4}-\d{2}-\d{2}$/, '날짜 형식이 올바르지 않습니다.'),
-  z.null(),
-]);
 const idSchema = z.string().uuid();
-
-const updateSchema = z.object({
-  notes: z.string().max(5000).optional(),
-  outcome: z.string().max(2000).nullable().optional(),
-  receivedAt: optionalDate.optional(),
-  amountKrw: z.number().int().min(0).max(2147483647).nullable().optional(),
-  nextAction: z.string().trim().max(500).nullable().optional(),
-  nextActionDueAt: optionalDate.optional(),
-}).refine((value) => Object.keys(value).length > 0, '변경할 내용이 없습니다.');
 
 export async function PATCH(
   request: Request,
@@ -33,7 +20,7 @@ export async function PATCH(
   }
 
   const body = await request.json().catch(() => null);
-  const parsed = updateSchema.safeParse(body);
+  const parsed = savedProgramUpdateSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? '입력값을 확인해주세요.' },
