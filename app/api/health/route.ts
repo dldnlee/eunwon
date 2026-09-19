@@ -17,9 +17,12 @@ export async function GET(request: Request) {
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { auth: { persistSession: false }, global: { fetch: (input, init) => fetch(input, { ...init, signal: controller.signal }) } }
+        { auth: { persistSession: false } }
       );
-      const { error } = await supabase.from('programs').select('id', { head: true, count: 'exact' }).limit(1);
+      // Readiness needs only a reachable table, not a total count or retry traffic.
+      const { error } = await supabase.from('programs')
+        .select('id', { head: true }).limit(1)
+        .abortSignal(controller.signal).retry(false);
       database = !error;
     } catch {
       database = false;
