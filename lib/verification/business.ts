@@ -23,6 +23,7 @@
 //   EndDt is 폐업일 as bare 'YYYYMMDD', same shape the old NTS integration used.
 
 const FAPI_URL = 'https://bizno.net/api/fapi';
+const LOOKUP_TIMEOUT_MS = 10_000;
 
 export type BusinessStatus = 'active' | 'suspended' | 'closed' | 'not_found';
 
@@ -74,10 +75,10 @@ function formatClosedDate(raw: string | undefined): string | null {
 
 /**
  * Looks up a single 사업자등록번호's status with the bizno free API.
- * Returns status 'not_found' both when bizno has no record and on any request
- * failure (missing key, quota exceeded, network error) — callers should treat
- * this as "couldn't confirm," not as a hard rejection, since newly-registered
- * businesses can take a few days to appear in any of these feeds.
+ * Returns status 'not_found' for invalid input, a missing key, provider errors,
+ * or a missing/unknown record. This means "couldn't confirm," not rejection.
+ * Network, timeout, and JSON failures throw so the route can report a retryable
+ * error without overwriting an existing verification with an unconfirmed result.
  */
 export async function checkBusinessStatus(businessNumber: string): Promise<BusinessVerification> {
   const bNo = normalizeBusinessNumber(businessNumber);
@@ -93,7 +94,8 @@ export async function checkBusinessStatus(businessNumber: string): Promise<Busin
     type: 'json',
   });
 
-  const res = await fetch(`${FAPI_URL}?${params}`);
+  // Bound both the request and response-body read to keep verification responsive.
+  const res = await fetch(`${FAPI_URL}?${params}`, { signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS) });
   if (!res.ok) return { status: 'not_found', taxType: null, closedAt: null };
 
   const body = (await res.json()) as BiznoResponse;
