@@ -116,13 +116,15 @@ export async function GET(request: Request) {
           const digestItems = selectDigestItems(fresh, profile, ratings, getDigestConfig());
           const digest = buildMatchDigestEmail({ items: digestItems, totalFresh: fresh.length, appUrl: APP_URL });
 
-          await resend.emails.send({
+          const { error: sendError } = await resend.emails.send({
             from: 'eunwon AI <alerts@eunwon.com>',
             to: email,
             subject: digest.subject,
             html: digest.html,
             text: digest.text,
           }, { idempotencyKey: `opportunity-${profile.id}-${new Date().toISOString().slice(0, 10)}` });
+          // Resend returns provider/network failures as error values, not thrown exceptions.
+          if (sendError) throw new Error(sendError.message);
 
           // Mark the full evaluated candidate set, not just the displayed top items. Otherwise a
           // capped digest would drip yesterday's unchanged leftovers into later daily emails.
@@ -168,12 +170,13 @@ export async function GET(request: Request) {
       if (existing) continue;
 
       try {
-        await resend.emails.send({
+        const { error: sendError } = await resend.emails.send({
           from: 'eunwon AI <alerts@eunwon.com>',
           to: email,
           subject: `[마감 ${days}일] ${program.title}`,
           html: buildDeadlineEmailHtml(program, days),
         }, { idempotencyKey: `deadline-${profile.id}-${program.id}-${days}-${program.deadline_end}` });
+        if (sendError) throw new Error(sendError.message);
 
         await supabase
           .from('notification_log')
@@ -200,11 +203,12 @@ export async function GET(request: Request) {
             .eq('reminder_kind', target.kind).eq('lead_days', days).maybeSingle();
           if (existing) continue;
           try {
-            await resend.emails.send({
+            const { error: sendError } = await resend.emails.send({
               from: 'eunwon AI <alerts@eunwon.com>', to: email,
               subject: `[${target.kind === 'registration_deadline' ? '접수 마감' : '행사 시작'} ${days}일 전] ${event.title}`,
               html: buildEventReminderEmailHtml(event, days, target.kind),
             }, { idempotencyKey: `event-${profile.id}-${event.id}-${target.kind}-${days}-${target.date}` });
+            if (sendError) throw new Error(sendError.message);
             await supabase.from('event_notification_log').insert({
               user_id: profile.id, event_id: event.id, reminder_kind: target.kind, lead_days: days,
             });
@@ -242,12 +246,13 @@ export async function GET(request: Request) {
     if (!shouldWarnTrialEnding(profile.subscription, createdAt, profile.trial_ending_notified_at)) continue;
 
     try {
-      await resend.emails.send({
+      const { error: sendError } = await resend.emails.send({
         from: 'eunwon AI <alerts@eunwon.com>',
         to: email,
         subject: '무료체험 종료가 얼마 남지 않았어요',
         html: buildTrialEndingEmailHtml(trialDaysLeft(createdAt)),
       });
+      if (sendError) throw new Error(sendError.message);
 
       await supabase
         .from('profiles')
