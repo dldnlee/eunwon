@@ -149,8 +149,11 @@ export async function crawlEventPages<T>(
   while ((page - 1) * pageSize < totalCount) {
     if (page > maxPages) throw new Error(`Event crawl exceeded safety cap (${maxPages} pages)`);
     const result = await fetchPage(page);
-    if (!Number.isFinite(result.totalCount) || result.totalCount < 0) {
+    if (!Number.isSafeInteger(result.totalCount) || result.totalCount < 0) {
       throw new Error('Event API returned an invalid totalCount');
+    }
+    if (page > 1 && result.totalCount !== totalCount) {
+      throw new Error('Event API totalCount changed during crawl; refusing stale deactivation');
     }
     totalCount = result.totalCount;
     if (result.items.length === 0 && collected.length < totalCount) {
@@ -161,5 +164,9 @@ export async function crawlEventPages<T>(
     page += 1;
   }
 
+  // Page offsets can reach totalCount even when nonempty pages omit rows.
+  if (collected.length !== totalCount) {
+    throw new Error('Event crawl row count does not match reported totalCount; refusing stale deactivation');
+  }
   return collected;
 }

@@ -35,3 +35,59 @@ test('crawl enforces its page safety cap', async () => {
     /exceeded safety cap/
   );
 });
+
+test('crawl rejects a nonempty but incomplete final page', async () => {
+  await assert.rejects(
+    crawlEventPages(async () => ({ items: ['one'], totalCount: 2 }), 100),
+    /reported totalCount/
+  );
+});
+
+test('crawl rejects missing rows on an earlier nonempty page', async () => {
+  await assert.rejects(
+    crawlEventPages(async (page) => ({ items: [`page-${page}`], totalCount: 3 }), 2),
+    /reported totalCount/
+  );
+});
+
+test('crawl rejects a changing total even when collected rows match the last count', async () => {
+  await assert.rejects(
+    crawlEventPages(async (page) => ({ items: [`page-${page}`], totalCount: page === 1 ? 3 : 2 }), 1),
+    /totalCount changed/
+  );
+});
+
+test('crawl rejects more rows than reported', async () => {
+  await assert.rejects(
+    crawlEventPages(async () => ({ items: ['one', 'two'], totalCount: 1 }), 100),
+    /reported totalCount/
+  );
+});
+
+test('crawl rejects invalid row counts', async () => {
+  for (const totalCount of [-1, NaN, Infinity, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+    await assert.rejects(
+      crawlEventPages(async () => ({ items: ['one', 'two'], totalCount }), 100),
+      /invalid totalCount/
+    );
+  }
+});
+
+test('crawl returns all rows for complete pages and a partial final page', async () => {
+  const pages: number[] = [];
+  const rows = await crawlEventPages(async (page) => {
+    pages.push(page);
+    return { items: page === 1 ? ['one', 'two'] : ['three'], totalCount: 3 };
+  }, 2);
+  assert.deepEqual(rows, ['one', 'two', 'three']);
+  assert.deepEqual(pages, [1, 2]);
+});
+
+test('crawl accepts an empty source and stops after the first page', async () => {
+  const pages: number[] = [];
+  assert.deepEqual(await crawlEventPages(async (page) => {
+    pages.push(page);
+    return { items: [], totalCount: 0 };
+  }), []);
+  assert.deepEqual(pages, [1]);
+});
