@@ -62,14 +62,23 @@ export function getAgeMonths(foundedAt: string | Date | null): number | null {
   );
 }
 
-/** Days remaining until a deadline date string (YYYY-MM-DD). Negative if past. */
+const koreanCalendar = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'Asia/Seoul',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+/** Korean calendar days until a date-only deadline (YYYY-MM-DD). Negative if past. */
 export function daysUntil(dateStr: string | null): number | null {
   if (!dateStr) return null;
-  const deadline = new Date(dateStr);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  deadline.setHours(0, 0, 0, 0);
-  return Math.round((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  const today = Object.fromEntries(
+    koreanCalendar.formatToParts(new Date()).map(({ type, value }) => [type, value])
+  );
+  // Represent both calendar dates at UTC midnight only for arithmetic. Using
+  // host-local midnight shifts date-only deadlines and disagrees across SSR/browser.
+  const todayMs = Date.UTC(Number(today.year), Number(today.month) - 1, Number(today.day));
+  return Math.round((Date.parse(dateStr) - todayMs) / 86_400_000);
 }
 
 export function formatKoreanDate(dateStr: string | null): string {
