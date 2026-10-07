@@ -67,8 +67,13 @@ export function parseEventDate(raw: string | undefined): string | null {
     ? `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`
     : value;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return null;
+  // PostgreSQL date columns cannot store year zero.
+  if (normalized.startsWith('0000-')) return null;
   const date = new Date(`${normalized}T00:00:00Z`);
-  return Number.isNaN(date.getTime()) ? null : normalized;
+  // JavaScript rolls dates such as February 30 into March instead of rejecting them.
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === normalized
+    ? normalized
+    : null;
 }
 
 export function parseEventDateRange(raw: string | undefined): { start: string | null; end: string | null } {

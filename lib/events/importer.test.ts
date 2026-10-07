@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import fixture from './fixtures/bizinfo-event.documented.json';
-import { crawlEventPages, normalizeBizinfoEvent, parseEventDateRange } from './importer';
+import { crawlEventPages, normalizeBizinfoEvent, parseEventDate, parseEventDateRange } from './importer';
 
 test('normalizes the documented local event fixture deterministically', () => {
   const first = normalizeBizinfoEvent(fixture);
@@ -18,6 +18,48 @@ test('normalizes the documented local event fixture deterministically', () => {
 test('date ranges tolerate compact and hyphenated source dates', () => {
   assert.deepEqual(parseEventDateRange('20260901~20260903'), { start: '2026-09-01', end: '2026-09-03' });
   assert.deepEqual(parseEventDateRange('2026-09-01 ~ 2026-09-03'), { start: '2026-09-01', end: '2026-09-03' });
+});
+
+test('event dates reject impossible calendar days instead of accepting JavaScript rollover', () => {
+  for (const value of ['2026-02-29', '2025-02-30', '2026-04-31', '2026-06-31', '1900-02-29']) {
+    assert.equal(parseEventDate(value), null, value);
+    assert.equal(parseEventDate(value.replaceAll('-', '')), null, `compact ${value}`);
+  }
+});
+
+test('event dates reject year zero and malformed dates', () => {
+  for (const value of [undefined, '', ' ', '0000-01-01', '00000101', '2026-00-01', '2026-13-01',
+    '2026-01-00', '2026-01-32', '2026-1-1', '2026-01-01T00:00:00Z', '미정']) {
+    assert.equal(parseEventDate(value), null, String(value));
+  }
+});
+
+test('event dates preserve valid leap days and boundary dates in both source formats', () => {
+  for (const value of ['2024-02-29', '2000-02-29', '2026-04-30', '2026-12-31', '0001-01-01', '9999-12-31']) {
+    assert.equal(parseEventDate(value), value);
+    assert.equal(parseEventDate(value.replaceAll('-', '')), value);
+    assert.equal(parseEventDate(` ${value} `), value);
+  }
+});
+
+test('event date ranges retain valid endpoints when the other endpoint is invalid', () => {
+  assert.deepEqual(parseEventDateRange('20260228~20260229'), { start: '2026-02-28', end: null });
+  assert.deepEqual(parseEventDateRange('2026-04-31 ∼ 2026-05-01'), { start: null, end: '2026-05-01' });
+  assert.deepEqual(parseEventDateRange('2026-02-29'), { start: null, end: null });
+});
+
+test('normalization keeps impossible source dates out of persisted event fields', () => {
+  const normalized = normalizeBizinfoEvent({
+    ...fixture,
+    eventBeginEndDe: '20260229~20260431',
+    rceptPd: '20260631~20260931',
+    updtPnttm: '0000-01-01',
+  });
+  for (const field of ['event_start', 'event_end', 'apply_start', 'apply_end', 'source_updated_at'] as const) {
+    assert.equal(normalized[field], null, field);
+  }
+  assert.equal(normalized.external_id, fixture.eventInfoId);
+  assert.equal(normalized.title, fixture.nttNm);
 });
 
 test('crawl refuses a truncated response so callers cannot deactivate unseen rows', async () => {
