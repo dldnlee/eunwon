@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createClient } from '@supabase/supabase-js';
 import {
   audienceRelevance,
   benefitClarity,
   contentNovelty,
   deadlineUrgency,
   scoreCandidate,
+  selectCandidates,
   sourceCompleteness,
 } from './candidate-selection';
 import type { Program } from '@/lib/types';
@@ -93,4 +95,57 @@ test('total score respects the documented weights', () => {
     score.sourceCompleteness * 0.15 +
     score.contentNovelty * 0.1;
   assert.ok(Math.abs(score.total - expected) < 1e-9);
+});
+
+type PostHistory = { program_id: string; updated_at: string };
+const daysAgo = (days: number) => new Date(NOW.getTime() - days * 86_400_000).toISOString();
+
+function candidateClient(programs: Program[], history: PostHistory[]) {
+  return createClient('https://candidates-test.supabase.co', 'test-key', {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: {
+      fetch: async (input) => {
+        const url = new URL(String(input));
+        if (url.pathname === '/rest/v1/programs') return Response.json(programs);
+        assert.equal(url.pathname, '/rest/v1/marketing_posts');
+        const filter = url.searchParams.get('updated_at');
+        assert.ok(filter && filter.startsWith('gte.'));
+        const cutoff = Date.parse(filter.slice(4));
+        return Response.json(history.filter((post) => Date.parse(post.updated_at) >= cutoff));
+      },
+    },
+  });
+}
+
+for (const recentPostCutoffDays of [undefined, 7]) {
+  test(`candidate selection excludes the full 14-day repeat window (lookback ${recentPostCutoffDays ?? 'default'})`, async () => {
+    const programs = [8, 13, 14].map((age) => program({ id: `age-${age}` }));
+    const history = [8, 13, 14].map((age) => ({ program_id: `age-${age}`, updated_at: daysAgo(age) }));
+    const { candidates } = await selectCandidates(candidateClient(programs, history), {
+      now: NOW, recentPostCutoffDays,
+    });
+
+    assert.deepEqual(candidates.map(({ program }) => program.id), ['age-14']);
+  });
+}
+
+test('candidate selection retains history throughout the novelty scoring window', async () => {
+  const ages = [14, 20, 29, 30];
+  const programs = [...ages.map((age) => program({ id: `age-${age}` })), program({ id: 'never-used' })];
+  const history = ages.map((age) => ({ program_id: `age-${age}`, updated_at: daysAgo(age) }));
+  const { candidates } = await selectCandidates(candidateClient(programs, history), { now: NOW });
+  const novelty = new Map(candidates.map(({ program, score }) => [program.id, score.contentNovelty]));
+
+  for (const age of ages) assert.equal(novelty.get(`age-${age}`), age / 30);
+  assert.equal(novelty.get('never-used'), 1);
+  assert.ok(candidates.findIndex(({ program }) => program.id === 'never-used') <
+    candidates.findIndex(({ program }) => program.id === 'age-14'));
+});
+
+test('candidate selection uses the latest history row regardless of query order', async () => {
+  for (const ages of [[20, 10], [10, 20]]) {
+    const history = ages.map((age) => ({ program_id: 'p1', updated_at: daysAgo(age) }));
+    const { candidates } = await selectCandidates(candidateClient([program()], history), { now: NOW });
+    assert.deepEqual(candidates, []);
+  }
 });

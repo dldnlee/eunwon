@@ -1,6 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Program } from '@/lib/types';
 
+const REPEAT_WINDOW_DAYS = 14;
+const NOVELTY_WINDOW_DAYS = 30;
+
 /**
  * Deterministic, explainable candidate ranking — docs/automated-instagram-marketing-plan.md §4 step 1.
  *
@@ -81,8 +84,8 @@ export function audienceRelevance(program: Program): number {
 export function contentNovelty(lastPostedAt: string | null | undefined, now = new Date()): number {
   if (!lastPostedAt) return 1;
   const ageDays = (now.getTime() - new Date(lastPostedAt).getTime()) / 86_400_000;
-  if (ageDays >= 30) return 1;
-  return Math.max(0, ageDays / 30);
+  if (ageDays >= NOVELTY_WINDOW_DAYS) return 1;
+  return Math.max(0, ageDays / NOVELTY_WINDOW_DAYS);
 }
 
 export function scoreCandidate(
@@ -119,8 +122,10 @@ export async function selectCandidates(
 ): Promise<{ candidates: ScoredCandidate[]; excludedCount: number }> {
   const now = options.now ?? new Date();
   const limit = options.limit ?? 5;
-  const recentWindowStart = new Date(now);
-  recentWindowStart.setDate(recentWindowStart.getDate() - (options.recentPostCutoffDays ?? 7));
+  // Fetch enough history for both repeat exclusion and novelty scoring, even when
+  // a caller requests a shorter lookback. Use elapsed days, as both rules do.
+  const historyDays = Math.max(options.recentPostCutoffDays ?? 0, REPEAT_WINDOW_DAYS, NOVELTY_WINDOW_DAYS);
+  const recentWindowStart = new Date(now.getTime() - historyDays * 86_400_000);
 
   const today = now.toISOString().slice(0, 10);
 
@@ -161,7 +166,7 @@ export async function selectCandidates(
       const lastPostedAt = lastPostedByProgram.get(program.id);
       if (lastPostedAt) {
         const ageDays = (now.getTime() - new Date(lastPostedAt).getTime()) / 86_400_000;
-        if (ageDays < 14) return false; // hard anti-repeat window
+        if (ageDays < REPEAT_WINDOW_DAYS) return false; // hard anti-repeat window
       }
       return true;
     })
