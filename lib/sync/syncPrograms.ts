@@ -312,8 +312,9 @@ async function upsertProgram(
     .single();
 
   if (error) {
-    console.error(`  ❌ Supabase error for ${item.pblancId}:`, error.message);
-    return;
+    // A failed write leaves updated_at unchanged. Abort before stale deactivation
+    // can mistake this still-listed program for one removed by the source.
+    throw new Error(`Program persistence failed for ${item.pblancId}: ${error.message}`);
   }
 
   try {
