@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import test, { type TestContext } from 'node:test';
 import { syncPrograms } from './syncPrograms';
 
-function setupSync(t: TestContext, options: { failProgram?: string; failEvidence?: boolean } = {}) {
+function setupSync(t: TestContext, options: {
+  failProgram?: string;
+  failEvidence?: boolean;
+  deadlines?: string[];
+} = {}) {
   const env = {
     NEXT_PUBLIC_SUPABASE_URL: 'https://program-test.supabase.co',
     SUPABASE_SERVICE_ROLE_KEY: 'test-service-key',
@@ -30,9 +34,10 @@ function setupSync(t: TestContext, options: { failProgram?: string; failEvidence
     const { method } = request;
     requests.push({ path: url.pathname, method, body });
     if (url.hostname === 'apis.data.go.kr') {
-      return Response.json({ response: { body: { totalCount: 2, items: { item: ['first', 'second'].map((id) => ({
-        pblancId: id, pblancNm: '지원사업', pblancUrl: 'https://example.com/program',
-        jrsdInsttNm: '지원기관', bsnsSumryCn: '사업 지원', reqstBeginEndDe: '',
+      const deadlines = options.deadlines ?? ['', ''];
+      return Response.json({ response: { body: { totalCount: deadlines.length, items: { item: deadlines.map((deadline, index) => ({
+        pblancId: ['first', 'second'][index] ?? `program-${index}`, pblancNm: '지원사업', pblancUrl: 'https://example.com/program',
+        jrsdInsttNm: '지원기관', bsnsSumryCn: '사업 지원', reqstBeginEndDe: deadline,
         trgetNm: '중소기업', hashtags: '서울', reqstMthPapersCn: '',
       })) } } } });
     }
@@ -94,5 +99,33 @@ test('successful program writes allow stale deactivation and accurate counts', a
 test('additive eligibility evidence failures still allow persisted programs to complete', async (t) => {
   const requests = setupSync(t, { failEvidence: true });
   assert.deepEqual(await syncPrograms(() => {}), { synced: 2, skipped: 0 });
+  assert.equal(requests.filter(({ method }) => method === 'PATCH').length, 1);
+});
+
+for (const now of ['2026-10-10T15:00:00Z', '2026-10-11T00:00:01Z', '2026-10-11T14:59:59Z']) {
+  test(`programs remain active throughout their Korean deadline day at ${now}`, async (t) => {
+    t.mock.timers.enable({ apis: ['Date'], now: Date.parse(now) });
+    const requests = setupSync(t, { deadlines: ['2026-10-01 ~ 2026-10-11'] });
+
+    assert.deepEqual(await syncPrograms(() => {}), { synced: 1, skipped: 0 });
+    const writes = requests.filter(({ path, method }) => path === '/rest/v1/programs' && method === 'POST');
+    assert.equal(writes.length, 1);
+    assert.equal(writes[0].body?.deadline_end, '2026-10-11');
+    assert.equal(writes[0].body?.is_active, true);
+  });
+}
+
+test('Korean midnight skips yesterday while preserving today, future, and open-ended programs', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.parse('2026-10-11T15:00:00Z') });
+  const requests = setupSync(t, { deadlines: [
+    '2026-10-01 ~ 2026-10-11',
+    '2026-10-01 ~ 2026-10-12',
+    '2026-10-01 ~ 2026-10-13',
+    '예산 소진시까지',
+  ] });
+
+  assert.deepEqual(await syncPrograms(() => {}), { synced: 3, skipped: 1 });
+  const writes = requests.filter(({ path, method }) => path === '/rest/v1/programs' && method === 'POST');
+  assert.deepEqual(writes.map(({ body }) => body?.deadline_end), ['2026-10-12', '2026-10-13', null]);
   assert.equal(requests.filter(({ method }) => method === 'PATCH').length, 1);
 });

@@ -9,7 +9,7 @@
 
 import { generateText, parseJsonResponse } from '../ai/client';
 import { createServiceClient } from '../supabase/server';
-import { stripHtml } from '../utils';
+import { daysUntil, stripHtml } from '../utils';
 import {
   ELIGIBILITY_EXTRACTOR_VERSION,
   extractEligibilityRequirements,
@@ -522,8 +522,9 @@ export async function syncPrograms(log: (msg: string) => void = console.log): Pr
     for (const item of items) {
       const { end } = parseDeadline(item.reqstBeginEndDe);
 
-      // Skip programs that already closed
-      if (end && end < new Date()) {
+      // Date-only deadlines stay open through the entire closing day in Korea.
+      const daysRemaining = daysUntil(end?.toISOString().slice(0, 10) ?? null);
+      if (daysRemaining !== null && daysRemaining < 0) {
         skipped++;
         continue;
       }
