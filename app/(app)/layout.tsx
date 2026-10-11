@@ -26,13 +26,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <Logo className="h-6 w-auto" />
             eunwon AI
           </Link>
-          {/* Full link row on desktop — collapses to MobileNavMenu's hamburger drawer below md, per DESIGN.md's documented top-nav collapsing strategy. */}
-          <nav aria-label="주요 메뉴" className="hidden items-center gap-lg text-body-sm font-medium text-steel md:flex">
+          {/* Full link row on desktop — collapses to MobileNavMenu's hamburger drawer below lg, per DESIGN.md's documented top-nav collapsing strategy. */}
+          <nav aria-label="주요 메뉴" className="hidden items-center gap-lg text-body-sm font-medium text-steel lg:flex">
             <Link href="/dashboard" className="rounded-sm py-xs transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2">
               대시보드
             </Link>
             <Link href="/dashboard/saved" className="rounded-sm py-xs transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2">
               저장한 사업
+            </Link>
+            <Link href="/financial-health" className="rounded-sm py-xs transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2">
+              재무·신용 관리
             </Link>
             <Link href="/events" className="rounded-sm py-xs transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-deep focus-visible:ring-offset-2">
               행사

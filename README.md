@@ -63,6 +63,10 @@ Upstage's OpenAI-compatible endpoint) · 토스페이먼츠 정기결제 · Rese
 
 ## What's here
 
+- **재무·신용 관리** (`/financial-health`) — PDF/image or pasted annual financial statements,
+  reviewed figures, calculated ratios, and AI-generated 30/60/90-day creditworthiness
+  improvement plans. Uses the existing Upstage key; no financial data is stored.
+  See [`docs/financial-health.md`](docs/financial-health.md) for limits, formulas, and checks.
 - `app/` — landing page, auth (`/login`, `/signup`), `/onboard` (4-step wizard), `/dashboard`
   (+ `/dashboard/saved` application tracker), `/program/[id]` (+ `/program/[id]/generate` for
   사업계획서 generation), `/settings/{profile,notifications,billing,documents}`, `/upgrade`, and

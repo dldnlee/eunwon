@@ -8,6 +8,7 @@ import { LogoutButton } from '@/components/LogoutButton';
 const NAV_LINKS = [
   { href: '/dashboard', label: '대시보드' },
   { href: '/dashboard/saved', label: '저장한 사업' },
+  { href: '/financial-health', label: '재무·신용 관리' },
   { href: '/events', label: '행사' },
   { href: '/settings/profile', label: '설정' },
 ];
@@ -15,7 +16,7 @@ const NAV_LINKS = [
 // Below the desktop breakpoint the horizontal link row doesn't fit next to
 // the wordmark — DESIGN.md's own responsive spec calls for the top nav to
 // collapse into a hamburger drawer under 1024px, so this swaps in for the
-// inline <nav> at the `md` breakpoint.
+// inline <nav> at the `lg` breakpoint.
 export function MobileNavMenu() {
   const [open, setOpen] = useState(false);
 
@@ -24,14 +25,14 @@ export function MobileNavMenu() {
   // viewport is resized back to desktop while the drawer is open.
   useEffect(() => {
     function handleResize() {
-      if (window.innerWidth >= 768) setOpen(false);
+      if (window.innerWidth >= 1024) setOpen(false);
     }
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       <button
         type="button"
         aria-label={open ? '메뉴 닫기' : '메뉴 열기'}
